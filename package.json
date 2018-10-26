@@ -2,7 +2,12 @@
   "name": "vscode-devtools",
   "description": "Adding devtools into VSCode",
   "version": "0.0.1",
-  "publisher": "jalissia",
+  "publisher": "jalissiak",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodeMooseUS/vscode-devtools"
+  },
   "engines": {
     "vscode": "^1.25.0"
   },

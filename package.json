@@ -1,0 +1,42 @@
+{
+  "name": "vscode-devtools",
+  "description": "Adding devtools into VSCode",
+  "version": "0.0.1",
+  "publisher": "jalissia",
+  "engines": {
+    "vscode": "^1.25.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:devtools.start",
+    "onWebviewPanel:devtools"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "devtools.start",
+        "title": "Attach to a target",
+        "category": "DevTools"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "dependencies": {
+    "chrome-devtools-frontend": "^1.0.602557",
+    "vscode": "^1.1.18",
+    "ws": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^10.5.2",
+    "@types/ws": "^6.0.1",
+    "typescript": "^3.1.1"
+  }
+}

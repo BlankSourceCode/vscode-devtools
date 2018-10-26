@@ -1,0 +1,9 @@
+.DS_Store
+.browse.VC.db
+npm-debug.log
+*.vsix
+
+lib/
+node_modules/
+/out/
+typings/

@@ -4,9 +4,10 @@
   "description": "Open the chrome devtools as a dockable webview inside vs code.",
   "version": "0.0.1",
   "preview": true,
-  "license": "SEE LICENSE FILE",
+  "license": "SEE LICENSE IN LICENSE",
   "publisher": "jalissiak",
   "icon": "icon.png",
+  "homepage": "https://github.com/CodeMooseUS/vscode-devtools/blob/master/README.md",
   "repository": {
     "type": "git",
     "url": "https://github.com/CodeMooseUS/vscode-devtools"
@@ -14,6 +15,10 @@
   "bugs": {
     "url": "https://github.com/CodeMooseUS/vscode-devtools/issues"
   },
+  "galleryBanner" : {
+		"color": "#5c2d91",
+		"theme" : "dark"
+	},
   "engines": {
     "vscode": "^1.25.0"
   },

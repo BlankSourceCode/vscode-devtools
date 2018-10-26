@@ -4,7 +4,22 @@ A VSCode extension to host the chrome devtools inside of a webview.
 
 ![Demo](demo.gif)
 
-## Running the extension
+## Using the extension
+- Start chrome with remote-debugging enabled on port 9222
+    - `chrome.exe --remote-debugging-port=9222`
+- Open the devtools inside VS Code 
+    - Run the `DevTools: Attach to a target` command
+    - Select a target from the drop down
+
+
+# Known Issues
+- Prototyping stage
+- The port is hard-coded to 9222
+- There is no error handling
+- There is no cleanup code for closing and disconnection
+- Settings are not persisted
+
+## Developing the extension
 
 - Start chrome with remote-debugging enabled on port 9222
     - `chrome.exe --remote-debugging-port=9222`

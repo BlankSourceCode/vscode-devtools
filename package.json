@@ -1,12 +1,18 @@
 {
   "name": "vscode-devtools",
-  "description": "Adding devtools into VSCode",
+  "displayName": "DevTools for Chrome",
+  "description": "Open the chrome devtools as a dockable webview inside vs code.",
   "version": "0.0.1",
+  "preview": true,
+  "license": "SEE LICENSE FILE",
   "publisher": "jalissiak",
   "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/CodeMooseUS/vscode-devtools"
+  },
+  "bugs": {
+    "url": "https://github.com/CodeMooseUS/vscode-devtools/issues"
   },
   "engines": {
     "vscode": "^1.25.0"

@@ -1,4 +1,4 @@
-# VSCode DevTools
+# VSCode DevTools for Chrome
 
 A VSCode extension to host the chrome devtools inside of a webview.
 

@@ -1,7 +1,7 @@
 {
   "name": "vscode-devtools",
   "displayName": "DevTools for Chrome",
-  "description": "Open the chrome devtools as a dockable webview inside vs code.",
+  "description": "Open the chrome devtools as a dockable webview",
   "version": "0.0.1",
   "preview": true,
   "license": "SEE LICENSE IN LICENSE",

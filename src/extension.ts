@@ -7,8 +7,8 @@ import { fixRemoteUrl, getURL } from './utils';
 
 export function activate(context: vscode.ExtensionContext) {
 
-    context.subscriptions.push(vscode.commands.registerCommand('devtools.start', async () => {
-        const settings = vscode.workspace.getConfiguration('vscode-devtools');
+    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.start', async () => {
+        const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
         const hostname = settings.get('hostname') as string || 'localhost';
         const port = settings.get('port') as number || 9222;
 
@@ -53,7 +53,7 @@ class DevToolsPanel {
         if (DevToolsPanel.currentPanel) {
             DevToolsPanel.currentPanel._panel.reveal(column);
         } else {
-            const panel = vscode.window.createWebviewPanel('devtools', 'DevTools', column || vscode.ViewColumn.One, {
+            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column || vscode.ViewColumn.One, {
                 enableScripts: true,
                 enableCommandUris: true,
                 retainContextWhenHidden: true

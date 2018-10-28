@@ -1,5 +1,5 @@
 {
-  "name": "vscode-devtools",
+  "name": "vscode-devtools-for-chrome",
   "displayName": "DevTools for Chrome",
   "description": "Open the chrome devtools as a dockable webview",
   "version": "0.0.1",
@@ -33,28 +33,28 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:devtools.start",
-    "onWebviewPanel:devtools"
+    "onCommand:devtools-for-chrome.start",
+    "onWebviewPanel:devtools-for-chrome"
   ],
   "main": "./out/extension",
   "contributes": {
     "commands": [
       {
-        "command": "devtools.start",
+        "command": "devtools-for-chrome.start",
         "title": "Attach to a target",
         "category": "DevTools"
       }
     ],
     "configuration": {
-      "title": "DevTools",
+      "title": "DevTools for Chrome",
       "type": "object",
       "properties": {
-        "vscode-devtools.hostname": {
+        "vscode-devtools-for-chrome.hostname": {
           "type": "string",
           "default": "localhost",
           "description": "The hostname on which to search for remote debuggable chrome instances"
         },
-        "vscode-devtools.port": {
+        "vscode-devtools-for-chrome.port": {
           "type": "number",
           "default": 9222,
           "description": "The port on which to search for remote debuggable chrome instances"

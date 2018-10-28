@@ -4,9 +4,7 @@ import * as path from 'path';
 import * as url from 'url';
 import * as vscode from 'vscode';
 import * as WebSocket from 'ws';
-import * as cp from 'child_process';
-import * as net from 'net';
-import * as utils from './Utils';
+import * as utils from './utils';
 import QuickPickItem = vscode.QuickPickItem;
 import QuickPickOptions = vscode.QuickPickOptions;
 
@@ -35,10 +33,10 @@ const port = 9222;
 
 async function launch(context: vscode.ExtensionContext) {
     // Check to see if the port is already taken, if it is will go ahead and go down the attach path
-    let portFree = await isPortFree(address, port);
+    let portFree = await utils.isPortFree(address, port);
     if (portFree) {
         // Launch Chrome with remote debugger port
-        launchLocalChrome('about:blank');
+        utils.launchLocalChrome('about:blank');
     }
 
     // Proceeed to attach
@@ -109,62 +107,6 @@ function fixRemoteUrl(remoteAddress: string, remotePort: number, target: any): a
         }
     }
     return target;
-}
-
-function launchLocalChrome(targetUrl: string) {
-    let chromePath = getPathToChrome();
-    let chromeArgs = ['--remote-debugging-port=9222'];
-
-    const chromeProc = cp.spawn(chromePath, chromeArgs, {
-        stdio: 'ignore',
-        detached: true
-    });
-
-    chromeProc.unref();
-}
-
-async function isPortFree(host: string, port: number): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-        let server = net.createServer();
-
-        server.on('error', () => resolve(false));
-        server.listen(port, host);
-
-        server.on('listening', () => {
-            server.close();
-            server.unref();
-        });
-
-        server.on('close', () => resolve(true));
-    });
-}
-
-const WIN_APPDATA = process.env.LOCALAPPDATA || '/';
-const DEFAULT_CHROME_PATH = {
-    LINUX: '/usr/bin/google-chrome',
-    OSX: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    WIN: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    WIN_LOCALAPPDATA: path.join(WIN_APPDATA, 'Google\\Chrome\\Application\\chrome.exe'),
-    WINx86: 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-};
-
-function getPathToChrome(): string {
-    const platform = utils.getPlatform();
-    if (platform === utils.Platform.OSX) {
-        return utils.existsSync(DEFAULT_CHROME_PATH.OSX) ? DEFAULT_CHROME_PATH.OSX : '';
-    } else if (platform === utils.Platform.Windows) {
-        if (utils.existsSync(DEFAULT_CHROME_PATH.WINx86)) {
-            return DEFAULT_CHROME_PATH.WINx86;
-        } else if (utils.existsSync(DEFAULT_CHROME_PATH.WIN)) {
-            return DEFAULT_CHROME_PATH.WIN;
-        } else if (utils.existsSync(DEFAULT_CHROME_PATH.WIN_LOCALAPPDATA)) {
-            return DEFAULT_CHROME_PATH.WIN_LOCALAPPDATA;
-        } else {
-            return '';
-        }
-    } else {
-        return utils.existsSync(DEFAULT_CHROME_PATH.LINUX) ? DEFAULT_CHROME_PATH.LINUX : '';
-    }
 }
 
 class DevToolsPanel {

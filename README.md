@@ -22,7 +22,7 @@ A VSCode extension to host the chrome devtools inside of a webview.
     - `chrome.exe --remote-debugging-port=9222`
 - Run the extension 
     - `npm install`
-    - `npm run watch` or `npm run compile`
+    - `npm run watch` or `npm run build`
     - Open the folder in VSCode
     - `F5` to start debugging
 - Open the devtools 

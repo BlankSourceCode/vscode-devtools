@@ -5,7 +5,8 @@ import * as url from 'url';
 import * as vscode from 'vscode';
 import * as WebSocket from 'ws';
 import * as cp from 'child_process';
-import * as Utils from './Utils';
+import * as net from 'net';
+import * as utils from './Utils';
 import QuickPickItem = vscode.QuickPickItem;
 import QuickPickOptions = vscode.QuickPickOptions;
 
@@ -32,9 +33,10 @@ export function activate(context: vscode.ExtensionContext) {
 const address = "localhost";
 const port = 9222;
 
-async function launch(context: vscode.ExtensionContext){
+async function launch(context: vscode.ExtensionContext) {
     // Check to see if the port is already taken, if it is will go ahead and go down the attach path
-    if(!isPortInUse(address, port)){
+    let portFree = await isPortFree(address, port);
+    if (portFree) {
         // Launch Chrome with remote debugger port
         launchLocalChrome('about:blank');
     }
@@ -43,7 +45,7 @@ async function launch(context: vscode.ExtensionContext){
     attach(context);
 }
 
-async function attach(context: vscode.ExtensionContext){
+async function attach(context: vscode.ExtensionContext) {
     const opts: QuickPickOptions = { matchOnDescription: true, placeHolder: "Select a target" };
     const items: QuickPickItem[] = [];
 
@@ -109,20 +111,32 @@ function fixRemoteUrl(remoteAddress: string, remotePort: number, target: any): a
     return target;
 }
 
-function launchLocalChrome(targetUrl:string){
+function launchLocalChrome(targetUrl: string) {
     let chromePath = getPathToChrome();
     let chromeArgs = ['--remote-debugging-port=9222'];
 
     const chromeProc = cp.spawn(chromePath, chromeArgs, {
         stdio: 'ignore',
-        detached: true    
-    });    
-    
+        detached: true
+    });
+
     chromeProc.unref();
 }
 
-function isPortInUse(address:string, port:number):boolean{
-    return false;
+async function isPortFree(host: string, port: number): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+        let server = net.createServer();
+
+        server.on('error', () => resolve(false));
+        server.listen(port, host);
+
+        server.on('listening', () => {
+            server.close();
+            server.unref();
+        });
+
+        server.on('close', () => resolve(true));
+    });
 }
 
 const WIN_APPDATA = process.env.LOCALAPPDATA || '/';
@@ -135,21 +149,21 @@ const DEFAULT_CHROME_PATH = {
 };
 
 function getPathToChrome(): string {
-    const platform = Utils.getPlatform();
-    if (platform === Utils.Platform.OSX) {
-        return Utils.existsSync(DEFAULT_CHROME_PATH.OSX) ? DEFAULT_CHROME_PATH.OSX : '';
-    } else if (platform === Utils.Platform.Windows) {
-        if (Utils.existsSync(DEFAULT_CHROME_PATH.WINx86)) {
+    const platform = utils.getPlatform();
+    if (platform === utils.Platform.OSX) {
+        return utils.existsSync(DEFAULT_CHROME_PATH.OSX) ? DEFAULT_CHROME_PATH.OSX : '';
+    } else if (platform === utils.Platform.Windows) {
+        if (utils.existsSync(DEFAULT_CHROME_PATH.WINx86)) {
             return DEFAULT_CHROME_PATH.WINx86;
-        } else if (Utils.existsSync(DEFAULT_CHROME_PATH.WIN)) {
+        } else if (utils.existsSync(DEFAULT_CHROME_PATH.WIN)) {
             return DEFAULT_CHROME_PATH.WIN;
-        } else if (Utils.existsSync(DEFAULT_CHROME_PATH.WIN_LOCALAPPDATA)) {
+        } else if (utils.existsSync(DEFAULT_CHROME_PATH.WIN_LOCALAPPDATA)) {
             return DEFAULT_CHROME_PATH.WIN_LOCALAPPDATA;
         } else {
             return '';
         }
     } else {
-        return Utils.existsSync(DEFAULT_CHROME_PATH.LINUX) ? DEFAULT_CHROME_PATH.LINUX : '';
+        return utils.existsSync(DEFAULT_CHROME_PATH.LINUX) ? DEFAULT_CHROME_PATH.LINUX : '';
     }
 }
 
@@ -158,7 +172,7 @@ class DevToolsPanel {
     public static readonly viewType = 'devtools';
 
     private readonly _panel: vscode.WebviewPanel;
-    private readonly _extensionPath: string; 
+    private readonly _extensionPath: string;
     private readonly _targetUrl: string;
     private _socket: WebSocket | null = null;
     private _isConnected: boolean = false;
@@ -250,7 +264,7 @@ class DevToolsPanel {
     private _onClose() {
         this._isConnected = false;
     }
-    
+
 
     public dispose() {
         DevToolsPanel.currentPanel = undefined;

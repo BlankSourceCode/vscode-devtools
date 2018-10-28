@@ -15,10 +15,10 @@
   "bugs": {
     "url": "https://github.com/CodeMooseUS/vscode-devtools/issues"
   },
-  "galleryBanner" : {
-		"color": "#5c2d91",
-		"theme" : "dark"
-	},
+  "galleryBanner": {
+    "color": "#5c2d91",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.25.0"
   },

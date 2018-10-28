@@ -1,0 +1,90 @@
+{
+  "name": "vscode-devtools",
+  "displayName": "DevTools for Chrome",
+  "description": "Open the chrome devtools as a dockable webview inside vs code.",
+  "version": "0.0.1",
+  "preview": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "publisher": "jalissiak",
+  "icon": "icon.png",
+  "homepage": "https://github.com/CodeMooseUS/vscode-devtools/blob/master/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodeMooseUS/vscode-devtools"
+  },
+  "bugs": {
+    "url": "https://github.com/CodeMooseUS/vscode-devtools/issues"
+  },
+  "galleryBanner": {
+    "color": "#5c2d91",
+    "theme": "dark"
+  },
+  "keywords": [
+    "browser",
+    "console",
+    "debugger",
+    "dom",
+    "remote"
+  ],
+  "engines": {
+    "vscode": "^1.25.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:devtools.start",
+    "onWebviewPanel:devtools"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "devtools.start",
+        "title": "Attach to a target",
+        "category": "DevTools"
+      }
+    ],
+    "configuration": {
+      "title": "DevTools",
+      "type": "object",
+      "properties": {
+        "vscode-devtools.hostname": {
+          "type": "string",
+          "default": "localhost",
+          "description": "The hostname on which to search for remote debuggable chrome instances"
+        },
+        "vscode-devtools.port": {
+          "type": "number",
+          "default": 9222,
+          "description": "The port on which to search for remote debuggable chrome instances"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run build-ts && npm run build-copy",
+    "build-ts": "tsc",
+    "build-copy": "ts-node copyStaticAssets.ts",
+    "build-watch": "npm run build && npm run watch",
+    "watch": "npm run watch-ts",
+    "watch-ts": "tsc -w",
+    "lint": "tslint -c tslint.json -p tsconfig.json",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "dependencies": {
+    "chrome-devtools-frontend": "^1.0.602557",
+    "vscode": "^1.1.18",
+    "ws": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^10.5.2",
+    "@types/shelljs": "^0.8.0",
+    "@types/ws": "^6.0.1",
+    "shelljs": "^0.8.2",
+    "ts-node": "^7.0.1",
+    "tslint": "^5.11.0",
+    "typescript": "^3.1.1"
+  }
+}

@@ -42,7 +42,7 @@
       {
         "command": "devtools-for-chrome.start",
         "title": "Attach to a target",
-        "category": "DevTools"
+        "category": "DevTools for Chrome"
       }
     ],
     "configuration": {

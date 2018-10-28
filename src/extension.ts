@@ -4,40 +4,19 @@ import * as path from 'path';
 import * as url from 'url';
 import * as vscode from 'vscode';
 import * as WebSocket from 'ws';
+import * as cp from 'child_process';
+import * as Utils from './Utils';
 import QuickPickItem = vscode.QuickPickItem;
 import QuickPickOptions = vscode.QuickPickOptions;
 
 export function activate(context: vscode.ExtensionContext) {
-
-    context.subscriptions.push(vscode.commands.registerCommand('devtools.start', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('devtools.attach', async () => {
         //DevToolsPanel.createOrShow(context.extensionPath);
+        attach(context);
+    }));
 
-        const opts: QuickPickOptions = { matchOnDescription: true, placeHolder: "Select a target" };
-        const items: QuickPickItem[] = [];
-
-        const address = "localhost";
-        const port = 9222;
-
-        const checkDiscoveryEndpoint = (url: string) => {
-            return getURL(url, { headers: { Host: 'localhost' } });
-        };
-
-        const jsonResponse = await checkDiscoveryEndpoint(`http://${address}:${port}/json/list`)
-            .catch(() => checkDiscoveryEndpoint(`http://${address}:${port}/json`));
-
-        const responseArray = JSON.parse(jsonResponse);
-        if (Array.isArray(responseArray)) {
-            responseArray.forEach(i => {
-                i = fixRemoteUrl(address, port, i);
-                items.push({ label: i.title, description: i.url, detail: i.webSocketDebuggerUrl });
-            });
-        }
-
-        vscode.window.showQuickPick(items).then((selection) => {
-            if (selection) {
-                DevToolsPanel.createOrShow(context.extensionPath, selection.detail as string);
-            }
-        });
+    context.subscriptions.push(vscode.commands.registerCommand('devtools.launch', async () => {
+        launch(context);
     }));
 
     if (vscode.window.registerWebviewPanelSerializer) {
@@ -48,6 +27,46 @@ export function activate(context: vscode.ExtensionContext) {
             }
         });
     }
+}
+
+const address = "localhost";
+const port = 9222;
+
+async function launch(context: vscode.ExtensionContext){
+    // Check to see if the port is already taken, if it is will go ahead and go down the attach path
+    if(!isPortInUse(address, port)){
+        // Launch Chrome with remote debugger port
+        launchLocalChrome('about:blank');
+    }
+
+    // Proceeed to attach
+    attach(context);
+}
+
+async function attach(context: vscode.ExtensionContext){
+    const opts: QuickPickOptions = { matchOnDescription: true, placeHolder: "Select a target" };
+    const items: QuickPickItem[] = [];
+
+    const checkDiscoveryEndpoint = (url: string) => {
+        return getURL(url, { headers: { Host: 'localhost' } });
+    };
+
+    const jsonResponse = await checkDiscoveryEndpoint(`http://${address}:${port}/json/list`)
+        .catch(() => checkDiscoveryEndpoint(`http://${address}:${port}/json`));
+
+    const responseArray = JSON.parse(jsonResponse);
+    if (Array.isArray(responseArray)) {
+        responseArray.forEach(i => {
+            i = fixRemoteUrl(address, port, i);
+            items.push({ label: i.title, description: i.url, detail: i.webSocketDebuggerUrl });
+        });
+    }
+
+    vscode.window.showQuickPick(items).then((selection) => {
+        if (selection) {
+            DevToolsPanel.createOrShow(context.extensionPath, selection.detail as string);
+        }
+    });
 }
 
 function getURL(aUrl: string, options: https.RequestOptions = {}): Promise<string> {
@@ -88,6 +107,50 @@ function fixRemoteUrl(remoteAddress: string, remotePort: number, target: any): a
         }
     }
     return target;
+}
+
+function launchLocalChrome(targetUrl:string){
+    let chromePath = getPathToChrome();
+    let chromeArgs = ['--remote-debugging-port=9222'];
+
+    const chromeProc = cp.spawn(chromePath, chromeArgs, {
+        stdio: 'ignore',
+        detached: true    
+    });    
+    
+    chromeProc.unref();
+}
+
+function isPortInUse(address:string, port:number):boolean{
+    return false;
+}
+
+const WIN_APPDATA = process.env.LOCALAPPDATA || '/';
+const DEFAULT_CHROME_PATH = {
+    LINUX: '/usr/bin/google-chrome',
+    OSX: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    WIN: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    WIN_LOCALAPPDATA: path.join(WIN_APPDATA, 'Google\\Chrome\\Application\\chrome.exe'),
+    WINx86: 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+};
+
+function getPathToChrome(): string {
+    const platform = Utils.getPlatform();
+    if (platform === Utils.Platform.OSX) {
+        return Utils.existsSync(DEFAULT_CHROME_PATH.OSX) ? DEFAULT_CHROME_PATH.OSX : '';
+    } else if (platform === Utils.Platform.Windows) {
+        if (Utils.existsSync(DEFAULT_CHROME_PATH.WINx86)) {
+            return DEFAULT_CHROME_PATH.WINx86;
+        } else if (Utils.existsSync(DEFAULT_CHROME_PATH.WIN)) {
+            return DEFAULT_CHROME_PATH.WIN;
+        } else if (Utils.existsSync(DEFAULT_CHROME_PATH.WIN_LOCALAPPDATA)) {
+            return DEFAULT_CHROME_PATH.WIN_LOCALAPPDATA;
+        } else {
+            return '';
+        }
+    } else {
+        return Utils.existsSync(DEFAULT_CHROME_PATH.LINUX) ? DEFAULT_CHROME_PATH.LINUX : '';
+    }
 }
 
 class DevToolsPanel {

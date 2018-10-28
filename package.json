@@ -26,15 +26,21 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:devtools.start",
+    "onCommand:devtools.attach",
+    "onCommand:devtools.launch",
     "onWebviewPanel:devtools"
   ],
   "main": "./out/src/extension",
   "contributes": {
     "commands": [
       {
-        "command": "devtools.start",
+        "command": "devtools.attach",
         "title": "Attach to a target",
+        "category": "DevTools"
+      },
+      {
+        "command": "devtools.launch",
+        "title": "Launch Chrome and the Chrome DevTools",
         "category": "DevTools"
       }
     ]

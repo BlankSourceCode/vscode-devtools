@@ -3,38 +3,60 @@ import * as vscode from 'vscode';
 import WebSocket from 'ws';
 import QuickPickItem = vscode.QuickPickItem;
 import QuickPickOptions = vscode.QuickPickOptions;
-import { fixRemoteUrl, getURL } from './utils';
+import * as utils from './utils';
+
+const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
+const hostname = settings.get('hostname') as string || 'localhost';
+const port = settings.get('port') as number || 9222;
 
 export function activate(context: vscode.ExtensionContext) {
-
-    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.start', async () => {
-        const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
-        const hostname = settings.get('hostname') as string || 'localhost';
-        const port = settings.get('port') as number || 9222;
-
-        const checkDiscoveryEndpoint = (url: string) => {
-            return getURL(url, { headers: { Host: 'localhost' } });
-        };
-
-        const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
-            .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
-
-        const responseArray = JSON.parse(jsonResponse);
-        if (Array.isArray(responseArray)) {
-            const items: QuickPickItem[] = [];
-
-            responseArray.forEach(i => {
-                i = fixRemoteUrl(hostname, port, i);
-                items.push({ label: i.title, description: i.url, detail: i.webSocketDebuggerUrl });
-            });
-
-            vscode.window.showQuickPick(items).then((selection) => {
-                if (selection) {
-                    DevToolsPanel.createOrShow(context.extensionPath, selection.detail as string);
-                }
-            });
-        }
+    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
+        attach(context);
     }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
+        launch(context);
+    }));
+}
+
+async function launch(context: vscode.ExtensionContext) {
+    const portFree = await utils.isPortFree(hostname, port);
+    if (portFree) {
+        const pathToChrome = settings.get('chromePath') as string || utils.getPathToChrome();
+        if (pathToChrome || utils.existsSync(pathToChrome) ) {
+            vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can speficy it in the \'chromePath\' setting.');
+            return;
+        }
+        utils.launchLocalChrome(pathToChrome, port, 'about:blank');
+    }
+
+    attach(context);
+}
+
+async function attach(context: vscode.ExtensionContext) {
+
+    const checkDiscoveryEndpoint = (url: string) => {
+        return utils.getURL(url, { headers: { Host: 'localhost' } });
+    };
+
+    const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
+        .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
+
+    const responseArray = JSON.parse(jsonResponse);
+    if (Array.isArray(responseArray)) {
+        const items: QuickPickItem[] = [];
+
+        responseArray.forEach(i => {
+            i = utils.fixRemoteUrl(hostname, port, i);
+            items.push({ label: i.title, description: i.url, detail: i.webSocketDebuggerUrl });
+        });
+
+        vscode.window.showQuickPick(items).then((selection) => {
+            if (selection) {
+                DevToolsPanel.createOrShow(context.extensionPath, selection.detail as string);
+            }
+        });
+    }
 }
 
 class DevToolsPanel {

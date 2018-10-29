@@ -33,15 +33,21 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:devtools-for-chrome.start",
+    "onCommand:devtools-for-chrome.launch",
+    "onCommand:devtools-for-chrome.attach",
     "onWebviewPanel:devtools-for-chrome"
   ],
   "main": "./out/extension",
   "contributes": {
     "commands": [
       {
-        "command": "devtools-for-chrome.start",
-        "title": "Attach to a target",
+        "command": "devtools-for-chrome.launch",
+        "title": "Launch Chrome and the Chrome DevTools (in VS Code)",
+        "category": "DevTools for Chrome"
+      },
+      {
+        "command": "devtools-for-chrome.attach",
+        "title": "Attach the Chrome DevTools (in VS Code) to a target",
         "category": "DevTools for Chrome"
       }
     ],
@@ -58,6 +64,11 @@
           "type": "number",
           "default": 9222,
           "description": "The port on which to search for remote debuggable chrome instances"
+        },
+        "vscode-devtools-for-chrome.chromePath": {
+          "type": "string",
+          "default": null,
+          "description": "The path to Chrome to be used rather than searching for the default"
         }
       }
     }

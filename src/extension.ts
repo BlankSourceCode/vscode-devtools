@@ -5,6 +5,10 @@ import QuickPickItem = vscode.QuickPickItem;
 import QuickPickOptions = vscode.QuickPickOptions;
 import * as utils from './utils';
 
+const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
+const hostname = settings.get('hostname') as string || 'localhost';
+const port = settings.get('port') as number || 9222;
+
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
         attach(context);
@@ -15,22 +19,17 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 }
 
-const address = 'localhost';
-const port = 9222;
-
 async function launch(context: vscode.ExtensionContext) {
-    const portFree = await utils.isPortFree(address, port);
+    const portFree = await utils.isPortFree(hostname, port);
     if (portFree) {
-        utils.launchLocalChrome('about:blank');
+        const pathToChrome = settings.get('chromePath') as string || utils.getPathToChrome();
+        utils.launchLocalChrome(pathToChrome, port, 'about:blank');
     }
 
     attach(context);
 }
 
 async function attach(context: vscode.ExtensionContext) {
-    const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
-    const hostname = settings.get('hostname') as string || 'localhost';
-    const port = settings.get('port') as number || 9222;
 
     const checkDiscoveryEndpoint = (url: string) => {
         return utils.getURL(url, { headers: { Host: 'localhost' } });

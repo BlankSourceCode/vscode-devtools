@@ -68,9 +68,8 @@ export function existsSync(path: string): boolean {
     }
 }
 
-export function launchLocalChrome(targetUrl: string) {
-    const chromePath = getPathToChrome();
-    const chromeArgs = ['--remote-debugging-port=9222'];
+export function launchLocalChrome(chromePath:string, chromePort:number, targetUrl: string) {
+    const chromeArgs = [`--remote-debugging-port=${chromePort}`];
 
     const chromeProc = cp.spawn(chromePath, chromeArgs, {
         stdio: 'ignore',

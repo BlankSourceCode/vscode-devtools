@@ -23,6 +23,9 @@ async function launch(context: vscode.ExtensionContext) {
     const portFree = await utils.isPortFree(hostname, port);
     if (portFree) {
         const pathToChrome = settings.get('chromePath') as string || utils.getPathToChrome();
+        if(!pathToChrome || utils.existsSync(pathToChrome)){
+            throw new Error('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can speficy it in the \'chromePath\' setting'.);
+        }
         utils.launchLocalChrome(pathToChrome, port, 'about:blank');
     }
 

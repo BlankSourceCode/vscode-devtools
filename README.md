@@ -2,6 +2,12 @@
 
 A VSCode extension to host the chrome devtools inside of a webview.
 
+<p align="center">
+    <a href="https://marketplace.visualstudio.com/items?itemName=codemooseus.vscode-devtools-for-chrome">
+        <img src="https://vsmarketplacebadge.apphb.com/version/codemooseus.vscode-devtools-for-chrome.svg" alt="Marketplace badge">
+    </a>
+</p>
+
 ![Demo](demo.gif)
 
 # Using the extension

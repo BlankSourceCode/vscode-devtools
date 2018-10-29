@@ -6,11 +6,11 @@ import QuickPickOptions = vscode.QuickPickOptions;
 import * as utils from './utils';
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('devtools.attach', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
         attach(context);
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('devtools.launch', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
         launch(context);
     }));
 }

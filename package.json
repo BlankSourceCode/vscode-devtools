@@ -33,15 +33,21 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:devtools-for-chrome.start",
+    "onCommand:devtools-for-chrome.launch",
+    "onCommand:devtools-for-chrome.attach",
     "onWebviewPanel:devtools-for-chrome"
   ],
   "main": "./out/extension",
   "contributes": {
     "commands": [
       {
-        "command": "devtools-for-chrome.start",
-        "title": "Attach to a target",
+        "command": "devtools-for-chrome.launch",
+        "title": "Launch Chrome and the Chrome DevTools (in VS Code)",
+        "category": "DevTools for Chrome"
+      },
+      {
+        "command": "devtools-for-chrome.attach",
+        "title": "Attach the Chrome DevTools (in VS Code) to a target",
         "category": "DevTools for Chrome"
       }
     ],

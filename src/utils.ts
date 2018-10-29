@@ -2,10 +2,10 @@ import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
-import * as url from 'url';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
+import * as url from 'url';
 
 export function getURL(aUrl: string, options: https.RequestOptions = {}): Promise<string> {
     return new Promise((resolve, reject) => {

@@ -1,10 +1,10 @@
-import * as os from 'os';
+import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
-import * as cp from 'child_process';
 import * as net from 'net';
+import * as os from 'os';
 import * as path from 'path';
 
 export function getURL(aUrl: string, options: https.RequestOptions = {}): Promise<string> {
@@ -64,14 +64,13 @@ export function existsSync(path: string): boolean {
         fs.statSync(path);
         return true;
     } catch (e) {
-        // doesn't exist
         return false;
     }
 }
 
 export function launchLocalChrome(targetUrl: string) {
-    let chromePath = getPathToChrome();
-    let chromeArgs = ['--remote-debugging-port=9222'];
+    const chromePath = getPathToChrome();
+    const chromeArgs = ['--remote-debugging-port=9222'];
 
     const chromeProc = cp.spawn(chromePath, chromeArgs, {
         stdio: 'ignore',
@@ -83,7 +82,7 @@ export function launchLocalChrome(targetUrl: string) {
 
 export async function isPortFree(host: string, port: number): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
-        let server = net.createServer();
+        const server = net.createServer();
 
         server.on('error', () => resolve(false));
         server.listen(port, host);

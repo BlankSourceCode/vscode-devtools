@@ -15,11 +15,11 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 }
 
-const address = "localhost";
+const address = 'localhost';
 const port = 9222;
 
 async function launch(context: vscode.ExtensionContext) {
-    let portFree = await utils.isPortFree(address, port);
+    const portFree = await utils.isPortFree(address, port);
     if (portFree) {
         utils.launchLocalChrome('about:blank');
     }

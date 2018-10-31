@@ -11,6 +11,7 @@ const debuggerType = 'devtools-for-chrome';
 const DEFAULT_CONFIG = {
     type: debuggerType,
     name: 'Launch Chrome against localhost',
+    request: 'launch',
     url: 'http://localhost:8080',
 };
 

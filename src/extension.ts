@@ -1,14 +1,19 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import {ChromeDevToolsConfigurationProvider} from './ChromeDevToolsConfigurationProvider'
 import WebSocket from 'ws';
 import QuickPickItem = vscode.QuickPickItem;
 import * as utils from './utils';
+import { isRegExp } from 'util';
 
 const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
 const hostname = settings.get('hostname') as string || 'localhost';
 const port = settings.get('port') as number || 9222;
-const debugConfigProvider:ChromeDevToolsConfigurationProvider = new ChromeDevToolsConfigurationProvider();
+const debuggerType = 'devtools-for-chrome';
+const DEFAULT_CONFIG = {
+    type: debuggerType,
+    name: 'Launch Chrome against localhost',
+    url: 'http://localhost:8080',
+};
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
@@ -20,28 +25,58 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     vscode.debug.onDidStartDebugSession( async (e: vscode.DebugSession) => {
-        debugSessionStart(e, context);
+        //debugSessionStart(e, context);
     });
     
-    vscode.debug.registerDebugConfigurationProvider('chrome', debugConfigProvider);
-}
-
-async function launch(context: vscode.ExtensionContext) {
-    const portFree = await utils.isPortFree(hostname, port);
-    if (portFree) {
-        const pathToChrome = settings.get('chromePath') as string || utils.getPathToChrome();
-        if (pathToChrome || utils.existsSync(pathToChrome) ) {
-            vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can speficy it in the \'chromePath\' setting.');
+    vscode.debug.registerDebugConfigurationProvider(debuggerType, {
+        provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration[]> {
+            return;
+        },
+    
+        resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
+            if(config && config.type == debuggerType){
+                let launchUri:string = ''; 
+                if(folder.uri.scheme == 'file'){
+                    const baseUrl:string = config.file || config.url;
+                    const replacedUri:string = baseUrl.replace('${workspaceFolder}', folder.uri.path);
+                    launchUri = utils.pathToFileURL(replacedUri);
+                } else {
+                    launchUri = config.url;
+                }
+                launch(context, launchUri, config.chromePath);
+            }
             return;
         }
-        utils.launchLocalChrome(pathToChrome, port, 'about:blank');
-    }
+    });
+}
 
-    attach(context);
+async function launch(context: vscode.ExtensionContext, launchUrl?:string, chromePathFromLaunchConfig?:string) {
+    const portFree = await utils.isPortFree(hostname, port);
+
+    if (portFree) {
+        const pathToChrome = settings.get('chromePath') as string || chromePathFromLaunchConfig || utils.getPathToChrome();
+
+        if (!pathToChrome || !utils.existsSync(pathToChrome) ) {
+            vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can specify it in the \'chromePath\' setting.');
+            return;
+        }
+
+        utils.launchLocalChrome(pathToChrome, port, 'about:blank' );
+    }
+    
+    ///json/new?{url}
+    const target = JSON.parse(await utils.getURL(`http://${hostname}:${port}/json/new?${launchUrl}`));
+
+    if(!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl == ''){
+        vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${launchUrl}).`);
+        attach(context);
+    } else {
+        DevToolsPanel.createOrShow(context.extensionPath, target.webSocketDebuggerUrl);
+    }
 }
 
 async function attach(context: vscode.ExtensionContext) {
-    const responseArray = getListOfTargets();
+    const responseArray = await getListOfTargets();
 
     if (Array.isArray(responseArray)) {
         const items: QuickPickItem[] = [];
@@ -56,20 +91,6 @@ async function attach(context: vscode.ExtensionContext) {
                 DevToolsPanel.createOrShow(context.extensionPath, selection.detail as string);
             }
         });
-    }
-}
-
-async function debugSessionStart(e: vscode.DebugSession, context: vscode.ExtensionContext) {
-    if(e.type == 'chrome') {
-        debugger;
-        console.log(arguments);
-        let targetUrl = debugConfigProvider.TargetUri;
-        let webSocketUri:string = await getWebSocketUri(targetUrl);
-        if(!webSocketUri || webSocketUri == ''){
-            vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${targetUrl}).`);
-        } else {
-            DevToolsPanel.createOrShow(context.extensionPath, webSocketUri);
-        }
     }
 }
 

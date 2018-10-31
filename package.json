@@ -52,6 +52,31 @@
         "category": "DevTools for Chrome"
       }
     ],
+    "debuggers": [
+      {
+        "type": "devtools-for-chrome",
+        "label": "DevTools for Chrome",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "Absolute uri to launch.",
+                "default": "http://localhost:8080"
+              },
+              "chromePath": {
+                "type": "string",
+                "description": "Absolute path to the Chrome instance to launch.",
+                "default": ""
+              }
+            }
+          }
+        }
+      }
+    ],
     "configuration": {
       "title": "DevTools for Chrome",
       "type": "object",

@@ -8,12 +8,6 @@ const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome')
 const hostname = settings.get('hostname') as string || 'localhost';
 const port = settings.get('port') as number || 9222;
 const debuggerType = 'devtools-for-chrome';
-const DEFAULT_CONFIG = {
-    type: debuggerType,
-    name: 'Launch Chrome against localhost',
-    request: 'launch',
-    url: 'http://localhost:8080',
-};
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
@@ -26,7 +20,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.debug.registerDebugConfigurationProvider(debuggerType, {
         provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration[]> {
-            return;
+            return [{
+                type: debuggerType,
+                name: 'Launch Chrome against localhost',
+                request: 'launch',
+                url: 'http://localhost:8080',
+            }];
         },
 
         resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {

@@ -6,6 +6,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
+import { Uri } from 'vscode';
 
 export function getURL(aUrl: string, options: https.RequestOptions = {}): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -121,4 +122,20 @@ export function getPathToChrome(): string {
     } else {
         return existsSync(DEFAULT_CHROME_PATH.LINUX) ? DEFAULT_CHROME_PATH.LINUX : '';
     }
+}
+
+export function pathToFileURL(absPath: string, normalize?: boolean): string {
+    if (normalize) {
+        absPath = path.normalize(absPath);
+        absPath = forceForwardSlashes(absPath);
+    }
+
+    absPath = (absPath.startsWith('/') ? 'file://' : 'file:///') +  absPath;
+    return encodeURI(absPath);
+}
+
+export function forceForwardSlashes(aUrl: string): string {
+    return aUrl
+        .replace(/\\\//g, '/') // Replace \/ (unnecessarily escaped forward slash)
+        .replace(/\\/g, '/');
 }

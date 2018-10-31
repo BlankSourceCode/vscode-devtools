@@ -35,7 +35,8 @@
   "activationEvents": [
     "onCommand:devtools-for-chrome.launch",
     "onCommand:devtools-for-chrome.attach",
-    "onWebviewPanel:devtools-for-chrome"
+    "onWebviewPanel:devtools-for-chrome",
+    "onDebug"
   ],
   "main": "./out/extension",
   "contributes": {

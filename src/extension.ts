@@ -1,22 +1,29 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import {ChromeDevToolsConfigurationProvider} from './ChromeDevToolsConfigurationProvider'
 import WebSocket from 'ws';
 import QuickPickItem = vscode.QuickPickItem;
-import QuickPickOptions = vscode.QuickPickOptions;
 import * as utils from './utils';
 
 const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
 const hostname = settings.get('hostname') as string || 'localhost';
 const port = settings.get('port') as number || 9222;
+const debugConfigProvider:ChromeDevToolsConfigurationProvider = new ChromeDevToolsConfigurationProvider();
 
 export function activate(context: vscode.ExtensionContext) {
+    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
+        launch(context);
+    }));
+
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
         attach(context);
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
-        launch(context);
-    }));
+    vscode.debug.onDidStartDebugSession( async (e: vscode.DebugSession) => {
+        debugSessionStart(e, context);
+    });
+    
+    vscode.debug.registerDebugConfigurationProvider('chrome', debugConfigProvider);
 }
 
 async function launch(context: vscode.ExtensionContext) {
@@ -34,15 +41,8 @@ async function launch(context: vscode.ExtensionContext) {
 }
 
 async function attach(context: vscode.ExtensionContext) {
+    const responseArray = getListOfTargets();
 
-    const checkDiscoveryEndpoint = (url: string) => {
-        return utils.getURL(url, { headers: { Host: 'localhost' } });
-    };
-
-    const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
-        .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
-
-    const responseArray = JSON.parse(jsonResponse);
     if (Array.isArray(responseArray)) {
         const items: QuickPickItem[] = [];
 
@@ -57,6 +57,40 @@ async function attach(context: vscode.ExtensionContext) {
             }
         });
     }
+}
+
+async function debugSessionStart(e: vscode.DebugSession, context: vscode.ExtensionContext) {
+    if(e.type == 'chrome') {
+        debugger;
+        console.log(arguments);
+        let targetUrl = debugConfigProvider.TargetUri;
+        let webSocketUri:string = await getWebSocketUri(targetUrl);
+        if(!webSocketUri || webSocketUri == ''){
+            vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${targetUrl}).`);
+        } else {
+            DevToolsPanel.createOrShow(context.extensionPath, webSocketUri);
+        }
+    }
+}
+
+async function getWebSocketUri(targetUrl: string): Promise<string> {
+    const responseArray = await getListOfTargets();
+
+    // Always return the first match which is the logic in the Chrome debug extension too
+    const match = responseArray.find(i => i.url.indexOf(targetUrl) !== -1);
+
+    return (match && match.webSocketUri)?  match.webSocketUri: '';
+}
+
+async function getListOfTargets(): Promise<Array<any>> {
+    const checkDiscoveryEndpoint = (url: string) => {
+        return utils.getURL(url, { headers: { Host: 'localhost' } });
+    };
+
+    const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
+    .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
+
+    return JSON.parse(jsonResponse);
 }
 
 class DevToolsPanel {

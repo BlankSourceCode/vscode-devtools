@@ -67,6 +67,11 @@
                 "description": "Absolute uri to launch.",
                 "default": "http://localhost:8080"
               },
+              "request": {
+                "type": "string",
+                "description": "A value representing whether the debugger should launch a new Chrome tab or attach to an exsisting one.",
+                "default": "launch"
+              },
               "chromePath": {
                 "type": "string",
                 "description": "Absolute path to the Chrome instance to launch.",

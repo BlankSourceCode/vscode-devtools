@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import WebSocket from 'ws';
 import QuickPickItem = vscode.QuickPickItem;
 import * as utils from './utils';
-import { isRegExp } from 'util';
 
 const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
 const hostname = settings.get('hostname') as string || 'localhost';
@@ -24,50 +23,51 @@ export function activate(context: vscode.ExtensionContext) {
         attach(context);
     }));
 
-    vscode.debug.onDidStartDebugSession( async (e: vscode.DebugSession) => {
-        //debugSessionStart(e, context);
-    });
-    
     vscode.debug.registerDebugConfigurationProvider(debuggerType, {
         provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration[]> {
             return;
         },
-    
+
         resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
-            if(config && config.type == debuggerType){
-                let launchUri:string = ''; 
-                if(folder.uri.scheme == 'file'){
-                    const baseUrl:string = config.file || config.url;
-                    const replacedUri:string = baseUrl.replace('${workspaceFolder}', folder.uri.path);
-                    launchUri = utils.pathToFileURL(replacedUri);
+            if (config && config.type == debuggerType) {
+                if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
+                    attach(context);
                 } else {
-                    launchUri = config.url;
+                    let launchUri: string = '';
+                    if (folder.uri.scheme == 'file') {
+                        const baseUrl: string = config.file || config.url;
+                        const replacedUri: string = baseUrl.replace('${workspaceFolder}', folder.uri.path);
+                        launchUri = utils.pathToFileURL(replacedUri);
+                    } else {
+                        launchUri = config.url;
+                    }
+                    launch(context, launchUri, config.chromePath);
                 }
-                launch(context, launchUri, config.chromePath);
+            } else {
+                vscode.window.showErrorMessage('No supported launch config was found.');
             }
             return;
         }
     });
 }
 
-async function launch(context: vscode.ExtensionContext, launchUrl?:string, chromePathFromLaunchConfig?:string) {
+async function launch(context: vscode.ExtensionContext, launchUrl?: string, chromePathFromLaunchConfig?: string) {
     const portFree = await utils.isPortFree(hostname, port);
 
     if (portFree) {
         const pathToChrome = settings.get('chromePath') as string || chromePathFromLaunchConfig || utils.getPathToChrome();
 
-        if (!pathToChrome || !utils.existsSync(pathToChrome) ) {
+        if (!pathToChrome || !utils.existsSync(pathToChrome)) {
             vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can specify it in the \'chromePath\' setting.');
             return;
         }
 
-        utils.launchLocalChrome(pathToChrome, port, 'about:blank' );
+        utils.launchLocalChrome(pathToChrome, port, 'about:blank');
     }
-    
-    ///json/new?{url}
+
     const target = JSON.parse(await utils.getURL(`http://${hostname}:${port}/json/new?${launchUrl}`));
 
-    if(!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl == ''){
+    if (!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl == '') {
         vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${launchUrl}).`);
         attach(context);
     } else {
@@ -94,22 +94,13 @@ async function attach(context: vscode.ExtensionContext) {
     }
 }
 
-async function getWebSocketUri(targetUrl: string): Promise<string> {
-    const responseArray = await getListOfTargets();
-
-    // Always return the first match which is the logic in the Chrome debug extension too
-    const match = responseArray.find(i => i.url.indexOf(targetUrl) !== -1);
-
-    return (match && match.webSocketUri)?  match.webSocketUri: '';
-}
-
 async function getListOfTargets(): Promise<Array<any>> {
     const checkDiscoveryEndpoint = (url: string) => {
         return utils.getURL(url, { headers: { Host: 'localhost' } });
     };
 
     const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
-    .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
+        .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
 
     return JSON.parse(jsonResponse);
 }
@@ -228,7 +219,7 @@ class DevToolsPanel {
 
     private _onOpen() {
         this._isConnected = true;
-         // Tell the devtools that the real websocket was opened
+        // Tell the devtools that the real websocket was opened
         this._panel.webview.postMessage('open');
 
         if (this._socket) {

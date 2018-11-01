@@ -8,7 +8,11 @@ A VSCode extension to host the chrome devtools inside of a webview.
     </a>
 </p>
 
-![Demo](demo2.gif)
+## Attach to a running chrome instance:
+![Demo1](demo.gif)
+
+## Launch a chrome debugger project and use screencasting:
+![Demo2](demo2.gif)
 
 # Using the extension
 ## Launching Chrome manually

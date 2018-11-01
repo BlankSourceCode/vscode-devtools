@@ -5,36 +5,40 @@ import QuickPickItem = vscode.QuickPickItem;
 import QuickPickOptions = vscode.QuickPickOptions;
 import * as utils from './utils';
 
-const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
-const hostname = settings.get('hostname') as string || 'localhost';
-const port = settings.get('port') as number || 9222;
-
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
-        attach(context);
+        runCommand(context, attach);
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
-        launch(context);
+        runCommand(context, launch);
     }));
 }
 
-async function launch(context: vscode.ExtensionContext) {
+function runCommand(context: vscode.ExtensionContext, command: (context: vscode.ExtensionContext, hostname: string, port: number) => void) {
+    const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
+    const hostname = settings.get('hostname') as string || 'localhost';
+    const port = settings.get('port') as number || 9222;
+
+    command(context, hostname, port);
+}
+
+async function launch(context: vscode.ExtensionContext, hostname: string, port: number) {
     const portFree = await utils.isPortFree(hostname, port);
     if (portFree) {
+        const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
         const pathToChrome = settings.get('chromePath') as string || utils.getPathToChrome();
-        if (pathToChrome || utils.existsSync(pathToChrome) ) {
+        if (!pathToChrome || !utils.existsSync(pathToChrome)) {
             vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can speficy it in the \'chromePath\' setting.');
             return;
         }
         utils.launchLocalChrome(pathToChrome, port, 'about:blank');
     }
 
-    attach(context);
+    attach(context, hostname, port);
 }
 
-async function attach(context: vscode.ExtensionContext) {
-
+async function attach(context: vscode.ExtensionContext, hostname: string, port: number) {
     const checkDiscoveryEndpoint = (url: string) => {
         return utils.getURL(url, { headers: { Host: 'localhost' } });
     };
@@ -75,7 +79,7 @@ class DevToolsPanel {
         if (DevToolsPanel.currentPanel) {
             DevToolsPanel.currentPanel._panel.reveal(column);
         } else {
-            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column || vscode.ViewColumn.One, {
+            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column || vscode.ViewColumn.Two, {
                 enableScripts: true,
                 enableCommandUris: true,
                 retainContextWhenHidden: true
@@ -118,6 +122,7 @@ class DevToolsPanel {
         DevToolsPanel.currentPanel = undefined;
 
         this._panel.dispose();
+        this._disposeSocket();
 
         while (this._disposables.length) {
             const x = this._disposables.pop();
@@ -127,18 +132,21 @@ class DevToolsPanel {
         }
     }
 
+    private _disposeSocket() {
+        if (this._socket) {
+            // Reset the socket since the devtools have been reloaded
+            this._socket.onerror = undefined;
+            this._socket.onopen = undefined;
+            this._socket.onclose = undefined;
+            this._socket.onmessage = undefined;
+            this._socket.close();
+            this._socket = undefined;
+        }
+    }
+
     private _onMessageFromWebview(message: string) {
         if (message === 'ready') {
-            if (this._socket) {
-                // Reset the socket since the devtools have been reloaded
-                this._socket.onerror = undefined;
-                this._socket.onopen = undefined;
-                this._socket.onclose = undefined;
-                this._socket.onmessage = undefined;
-                this._socket.close();
-            }
-
-            this._socket = undefined;
+            this._disposeSocket();
         }
 
         if (!this._socket) {
@@ -173,7 +181,7 @@ class DevToolsPanel {
 
     private _onOpen() {
         this._isConnected = true;
-         // Tell the devtools that the real websocket was opened
+        // Tell the devtools that the real websocket was opened
         this._panel.webview.postMessage('open');
 
         if (this._socket) {

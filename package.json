@@ -43,12 +43,12 @@
     "commands": [
       {
         "command": "devtools-for-chrome.launch",
-        "title": "Launch Chrome and the Chrome DevTools (in VS Code)",
+        "title": "Launch Chrome and then attach to a target",
         "category": "DevTools for Chrome"
       },
       {
         "command": "devtools-for-chrome.attach",
-        "title": "Attach the Chrome DevTools (in VS Code) to a target",
+        "title": "Attach to a target",
         "category": "DevTools for Chrome"
       }
     ],

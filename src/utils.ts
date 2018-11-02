@@ -6,7 +6,6 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
-import { Uri } from 'vscode';
 
 export function getURL(aUrl: string, options: https.RequestOptions = {}): Promise<string> {
     return new Promise((resolve, reject) => {

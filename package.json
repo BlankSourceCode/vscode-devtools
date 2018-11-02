@@ -7,6 +7,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "publisher": "codemooseus",
   "icon": "icon.png",
+  "aiKey": "3ec4c1b4-542f-4adf-830a-a4b04370fa3f",
   "homepage": "https://github.com/CodeMooseUS/vscode-devtools/blob/master/README.md",
   "repository": {
     "type": "git",
@@ -118,12 +119,12 @@
   "dependencies": {
     "chrome-devtools-frontend": "^1.0.602557",
     "vscode": "^1.1.18",
+    "vscode-extension-telemetry": "^0.1.0",
     "ws": "^6.1.0"
   },
   "devDependencies": {
     "@types/node": "^10.5.2",
     "@types/shelljs": "^0.8.0",
-    "@types/ws": "^6.0.1",
     "shelljs": "^0.8.2",
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0",

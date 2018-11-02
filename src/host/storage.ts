@@ -13,6 +13,21 @@ class ToolsHost {
     setPreference(name: string, value: string) {
         // TODO: save the preference via the extension and global/workspaceState
     }
+
+    recordEnumeratedHistogram(actionName: string, actionCode: number, bucketSize: number) {
+        // Inform the extension of the chrome telemetry event
+        const telemetry = {
+            name: `devtools/${actionName}`,
+            properties: {},
+            metrics: {}
+        };
+        if (actionName === 'DevTools.InspectElement') {
+            (telemetry.metrics as any)[`${actionName}.duration`] = actionCode;
+        } else {
+            (telemetry.properties as any)[`${actionName}.actionCode`] = actionCode;
+        }
+        window.parent.postMessage(`telemetry:${JSON.stringify(telemetry)}`, '*');
+    }
 }
 
 class ToolsWebSocket {
@@ -61,5 +76,24 @@ devToolsFrame.onload = () => {
     Object.defineProperty(dtWindow, 'localStorage', {
         get: function () { return undefined; },
         set: function () { }
+    });
+
+    const reportError = function (name: string, stack: string) {
+        const telemetry = {
+            name: `devtools/${name}`,
+            properties: { stack: stack.substr(0, 30) },
+            metrics: {}
+        };
+        dtWindow.parent.postMessage(`telemetry:${JSON.stringify(telemetry)}`, '*');
+    };
+
+    // Add unhandled exception listeners for telemetry
+    (dtWindow as any).addEventListener('error', (event: ErrorEvent) => {
+        const stack = (event && event.error && event.error.stack ? event.error.stack : event.message);
+        reportError('error', stack);
+    });
+    (dtWindow as any).addEventListener('unhandledrejection', (reject: PromiseRejectionEvent) => {
+        const stack = (reject && reject.reason && reject.reason.stack ? reject.reason.stack : reject.type);
+        reportError('unhandledrejection', stack);
     });
 };

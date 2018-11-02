@@ -1,25 +1,31 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import TelemetryReporter from 'vscode-extension-telemetry';
 import WebSocket from 'ws';
 import QuickPickItem = vscode.QuickPickItem;
 import * as utils from './utils';
 
-let settings: vscode.WorkspaceConfiguration;
-let hostname: string;
-let port: number;
+interface IPackageInfo {
+    name: string;
+    version: string;
+    aiKey: string;
+}
+
 const debuggerType: string = 'devtools-for-chrome';
+let telemetryReporter: TelemetryReporter;
 
 export function activate(context: vscode.ExtensionContext) {
-    settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
-    hostname = settings.get('hostname') as string || 'localhost';
-    port = settings.get('port') as number || 9222;
+
+    const packageInfo = getPackageInfo(context);
+    telemetryReporter = packageInfo && new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
+    context.subscriptions.push(telemetryReporter);
 
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
         launch(context);
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
-        attach(context);
+        attach(context, /* viaConfig= */ false);
     }));
 
     vscode.debug.registerDebugConfigurationProvider(debuggerType, {
@@ -35,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
         resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
             if (config && config.type == debuggerType) {
                 if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
-                    attach(context);
+                    attach(context, /* viaConfig= */ true);
                 } else {
                     let launchUri: string = '';
                     if (folder.uri.scheme == 'file') {
@@ -56,13 +62,19 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function launch(context: vscode.ExtensionContext, launchUrl?: string, chromePathFromLaunchConfig?: string) {
-    const portFree = await utils.isPortFree(hostname, port);
+    const viaConfig = !!(launchUrl || chromePathFromLaunchConfig);
+    const telemetryProps = { viaConfig: `${viaConfig}` };
+    telemetryReporter.sendTelemetryEvent('launch', telemetryProps);
 
+    const { hostname, port } = getSettings();
+    const portFree = await utils.isPortFree(hostname, port);
     if (portFree) {
+        const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
         const pathToChrome = settings.get('chromePath') as string || chromePathFromLaunchConfig || utils.getPathToChrome();
 
         if (!pathToChrome || !utils.existsSync(pathToChrome)) {
             vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can specify it in the \'chromePath\' setting.');
+            telemetryReporter.sendTelemetryEvent('launch/error/chrome_not_found', telemetryProps);
             return;
         }
 
@@ -73,16 +85,22 @@ async function launch(context: vscode.ExtensionContext, launchUrl?: string, chro
 
     if (!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl == '') {
         vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${launchUrl}).`);
-        attach(context);
+        telemetryReporter.sendTelemetryEvent('launch/error/tab_not_found', telemetryProps);
+        attach(context, viaConfig);
     } else {
         DevToolsPanel.createOrShow(context.extensionPath, target.webSocketDebuggerUrl);
     }
 }
 
-async function attach(context: vscode.ExtensionContext) {
-    const responseArray = await getListOfTargets();
+async function attach(context: vscode.ExtensionContext, viaConfig: boolean) {
+    const telemetryProps = { viaConfig: `${viaConfig}` };
+    telemetryReporter.sendTelemetryEvent('attach', telemetryProps);
 
+    const { hostname, port } = getSettings();
+    const responseArray = await getListOfTargets(hostname, port);
     if (Array.isArray(responseArray)) {
+        telemetryReporter.sendTelemetryEvent('attach/list', telemetryProps, { targetCount: responseArray.length });
+
         const items: QuickPickItem[] = [];
 
         responseArray.forEach(i => {
@@ -95,10 +113,32 @@ async function attach(context: vscode.ExtensionContext) {
                 DevToolsPanel.createOrShow(context.extensionPath, selection.detail as string);
             }
         });
+    } else {
+        telemetryReporter.sendTelemetryEvent('attach/error/no_json_array', telemetryProps);
     }
 }
 
-async function getListOfTargets(): Promise<Array<any>> {
+function getSettings(): { hostname: string, port: number } {
+    const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
+    const hostname = settings.get('hostname') as string || 'localhost';
+    const port = settings.get('port') as number || 9222;
+
+    return { hostname, port };
+}
+
+function getPackageInfo(context: vscode.ExtensionContext): IPackageInfo {
+    const extensionPackage = require(context.asAbsolutePath('./package.json'));
+    if (extensionPackage) {
+        return {
+            name: extensionPackage.name,
+            version: extensionPackage.version,
+            aiKey: extensionPackage.aiKey
+        };
+    }
+    return undefined;
+}
+
+async function getListOfTargets(hostname: string, port: number): Promise<Array<any>> {
     const checkDiscoveryEndpoint = (url: string) => {
         return utils.getURL(url, { headers: { Host: 'localhost' } });
     };
@@ -106,7 +146,13 @@ async function getListOfTargets(): Promise<Array<any>> {
     const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
         .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
 
-    return JSON.parse(jsonResponse);
+    let result: Array<string>;
+    try {
+        result = JSON.parse(jsonResponse);
+    } catch (ex) {
+        result = undefined;
+    }
+    return result;
 }
 
 class DevToolsPanel {
@@ -181,10 +227,11 @@ class DevToolsPanel {
     private _disposeSocket() {
         if (this._socket) {
             // Reset the socket since the devtools have been reloaded
-            this._socket.onerror = undefined;
+            telemetryReporter.sendTelemetryEvent('websocket/dispose');
             this._socket.onopen = undefined;
-            this._socket.onclose = undefined;
             this._socket.onmessage = undefined;
+            this._socket.onerror = undefined;
+            this._socket.onclose = undefined;
             this._socket.close();
             this._socket = undefined;
         }
@@ -192,7 +239,12 @@ class DevToolsPanel {
 
     private _onMessageFromWebview(message: string) {
         if (message === 'ready') {
+            if (this._socket) {
+                telemetryReporter.sendTelemetryEvent('websocket/reconnect');
+            }
             this._disposeSocket();
+        } else if (message.substr(0, 10) === 'telemetry:') {
+            return this._sendTelemetryMessage(message.substr(10));
         }
 
         if (!this._socket) {
@@ -212,22 +264,16 @@ class DevToolsPanel {
 
         // Create the websocket
         this._socket = new WebSocket(url);
-        this._socket.onerror = this._onError.bind(this);
         this._socket.onopen = this._onOpen.bind(this);
         this._socket.onmessage = this._onMessage.bind(this);
+        this._socket.onerror = this._onError.bind(this);
         this._socket.onclose = this._onClose.bind(this);
-    }
-
-    private _onError() {
-        if (this._isConnected) {
-            // Tell the devtools that there was a connection error
-            this._panel.webview.postMessage('error');
-        }
     }
 
     private _onOpen() {
         this._isConnected = true;
         // Tell the devtools that the real websocket was opened
+        telemetryReporter.sendTelemetryEvent('websocket/open');
         this._panel.webview.postMessage('open');
 
         if (this._socket) {
@@ -246,12 +292,26 @@ class DevToolsPanel {
         }
     }
 
+    private _onError() {
+        if (this._isConnected) {
+            // Tell the devtools that there was a connection error
+            telemetryReporter.sendTelemetryEvent('websocket/error');
+            this._panel.webview.postMessage('error');
+        }
+    }
+
     private _onClose() {
         if (this._isConnected) {
             // Tell the devtools that the real websocket was closed
+            telemetryReporter.sendTelemetryEvent('websocket/close');
             this._panel.webview.postMessage('close');
         }
         this._isConnected = false;
+    }
+
+    private _sendTelemetryMessage(message: string) {
+        const telemetry = JSON.parse(message);
+        telemetryReporter.sendTelemetryEvent(telemetry.name, telemetry.properties, telemetry.metrics);
     }
 
     private _update() {
@@ -271,9 +331,10 @@ class DevToolsPanel {
             <head>
                 <meta http-equiv="content-type" content="text/html; charset=utf-8">
                 <style>
-                    html, body {
+                    html, body, iframe {
                         height: 100%;
                         width: 100%;
+                        position: absolute;
                         padding: 0;
                         margin: 0;
                         overflow: hidden;

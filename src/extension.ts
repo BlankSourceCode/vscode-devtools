@@ -4,12 +4,16 @@ import WebSocket from 'ws';
 import QuickPickItem = vscode.QuickPickItem;
 import * as utils from './utils';
 
-const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
-const hostname = settings.get('hostname') as string || 'localhost';
-const port = settings.get('port') as number || 9222;
-const debuggerType = 'devtools-for-chrome';
+let settings: vscode.WorkspaceConfiguration;
+let hostname: string;
+let port: number;
+const debuggerType: string = 'devtools-for-chrome';
 
 export function activate(context: vscode.ExtensionContext) {
+    settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
+    hostname = settings.get('hostname') as string || 'localhost';
+    port = settings.get('port') as number || 9222;
+
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
         launch(context);
     }));
@@ -121,7 +125,7 @@ class DevToolsPanel {
         if (DevToolsPanel.currentPanel) {
             DevToolsPanel.currentPanel._panel.reveal(column);
         } else {
-            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column || vscode.ViewColumn.One, {
+            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column || vscode.ViewColumn.Two, {
                 enableScripts: true,
                 enableCommandUris: true,
                 retainContextWhenHidden: true
@@ -164,6 +168,7 @@ class DevToolsPanel {
         DevToolsPanel.currentPanel = undefined;
 
         this._panel.dispose();
+        this._disposeSocket();
 
         while (this._disposables.length) {
             const x = this._disposables.pop();
@@ -173,18 +178,21 @@ class DevToolsPanel {
         }
     }
 
+    private _disposeSocket() {
+        if (this._socket) {
+            // Reset the socket since the devtools have been reloaded
+            this._socket.onerror = undefined;
+            this._socket.onopen = undefined;
+            this._socket.onclose = undefined;
+            this._socket.onmessage = undefined;
+            this._socket.close();
+            this._socket = undefined;
+        }
+    }
+
     private _onMessageFromWebview(message: string) {
         if (message === 'ready') {
-            if (this._socket) {
-                // Reset the socket since the devtools have been reloaded
-                this._socket.onerror = undefined;
-                this._socket.onopen = undefined;
-                this._socket.onclose = undefined;
-                this._socket.onmessage = undefined;
-                this._socket.close();
-            }
-
-            this._socket = undefined;
+            this._disposeSocket();
         }
 
         if (!this._socket) {

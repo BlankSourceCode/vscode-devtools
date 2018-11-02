@@ -35,7 +35,8 @@
   "activationEvents": [
     "onCommand:devtools-for-chrome.launch",
     "onCommand:devtools-for-chrome.attach",
-    "onWebviewPanel:devtools-for-chrome"
+    "onWebviewPanel:devtools-for-chrome",
+    "onDebug"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -49,6 +50,36 @@
         "command": "devtools-for-chrome.attach",
         "title": "Attach to a target",
         "category": "DevTools for Chrome"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "devtools-for-chrome",
+        "label": "DevTools for Chrome",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "Absolute uri to launch.",
+                "default": "http://localhost:8080"
+              },
+              "request": {
+                "type": "string",
+                "description": "A value representing whether the debugger should launch a new Chrome tab or attach to an exsisting one.",
+                "default": "launch"
+              },
+              "chromePath": {
+                "type": "string",
+                "description": "Absolute path to the Chrome instance to launch.",
+                "default": ""
+              }
+            }
+          }
+        }
       }
     ],
     "configuration": {

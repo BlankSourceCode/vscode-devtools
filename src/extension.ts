@@ -2,51 +2,86 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import WebSocket from 'ws';
 import QuickPickItem = vscode.QuickPickItem;
-import QuickPickOptions = vscode.QuickPickOptions;
 import * as utils from './utils';
 
+let settings: vscode.WorkspaceConfiguration;
+let hostname: string;
+let port: number;
+const debuggerType: string = 'devtools-for-chrome';
+
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
-        runCommand(context, attach);
-    }));
+    settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
+    hostname = settings.get('hostname') as string || 'localhost';
+    port = settings.get('port') as number || 9222;
 
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
-        runCommand(context, launch);
+        launch(context);
     }));
-}
 
-function runCommand(context: vscode.ExtensionContext, command: (context: vscode.ExtensionContext, hostname: string, port: number) => void) {
-    const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
-    const hostname = settings.get('hostname') as string || 'localhost';
-    const port = settings.get('port') as number || 9222;
+    context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
+        attach(context);
+    }));
 
-    command(context, hostname, port);
-}
+    vscode.debug.registerDebugConfigurationProvider(debuggerType, {
+        provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration[]> {
+            return [{
+                type: debuggerType,
+                name: 'Launch Chrome against localhost',
+                request: 'launch',
+                url: 'http://localhost:8080',
+            }];
+        },
 
-async function launch(context: vscode.ExtensionContext, hostname: string, port: number) {
-    const portFree = await utils.isPortFree(hostname, port);
-    if (portFree) {
-        const settings = vscode.workspace.getConfiguration('vscode-devtools-for-chrome');
-        const pathToChrome = settings.get('chromePath') as string || utils.getPathToChrome();
-        if (!pathToChrome || !utils.existsSync(pathToChrome)) {
-            vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can speficy it in the \'chromePath\' setting.');
+        resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
+            if (config && config.type == debuggerType) {
+                if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
+                    attach(context);
+                } else {
+                    let launchUri: string = '';
+                    if (folder.uri.scheme == 'file') {
+                        const baseUrl: string = config.file || config.url;
+                        const replacedUri: string = baseUrl.replace('${workspaceFolder}', folder.uri.path);
+                        launchUri = utils.pathToFileURL(replacedUri);
+                    } else {
+                        launchUri = config.url;
+                    }
+                    launch(context, launchUri, config.chromePath);
+                }
+            } else {
+                vscode.window.showErrorMessage('No supported launch config was found.');
+            }
             return;
         }
+    });
+}
+
+async function launch(context: vscode.ExtensionContext, launchUrl?: string, chromePathFromLaunchConfig?: string) {
+    const portFree = await utils.isPortFree(hostname, port);
+
+    if (portFree) {
+        const pathToChrome = settings.get('chromePath') as string || chromePathFromLaunchConfig || utils.getPathToChrome();
+
+        if (!pathToChrome || !utils.existsSync(pathToChrome)) {
+            vscode.window.showErrorMessage('Chrome was not found. Chrome must be installed for this extension to function. If you have Chrome installed at a custom location you can specify it in the \'chromePath\' setting.');
+            return;
+        }
+
         utils.launchLocalChrome(pathToChrome, port, 'about:blank');
     }
 
-    attach(context, hostname, port);
+    const target = JSON.parse(await utils.getURL(`http://${hostname}:${port}/json/new?${launchUrl}`));
+
+    if (!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl == '') {
+        vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${launchUrl}).`);
+        attach(context);
+    } else {
+        DevToolsPanel.createOrShow(context.extensionPath, target.webSocketDebuggerUrl);
+    }
 }
 
-async function attach(context: vscode.ExtensionContext, hostname: string, port: number) {
-    const checkDiscoveryEndpoint = (url: string) => {
-        return utils.getURL(url, { headers: { Host: 'localhost' } });
-    };
+async function attach(context: vscode.ExtensionContext) {
+    const responseArray = await getListOfTargets();
 
-    const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
-        .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
-
-    const responseArray = JSON.parse(jsonResponse);
     if (Array.isArray(responseArray)) {
         const items: QuickPickItem[] = [];
 
@@ -61,6 +96,17 @@ async function attach(context: vscode.ExtensionContext, hostname: string, port: 
             }
         });
     }
+}
+
+async function getListOfTargets(): Promise<Array<any>> {
+    const checkDiscoveryEndpoint = (url: string) => {
+        return utils.getURL(url, { headers: { Host: 'localhost' } });
+    };
+
+    const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
+        .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
+
+    return JSON.parse(jsonResponse);
 }
 
 class DevToolsPanel {

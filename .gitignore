@@ -7,3 +7,6 @@ lib/
 node_modules/
 /out/
 typings/
+/.vs
+/src/.vs/src/v16/.suo
+/src/.vs

@@ -125,3 +125,19 @@ export function getPathToChrome(): string {
         return existsSync(DEFAULT_CHROME_PATH.LINUX) ? DEFAULT_CHROME_PATH.LINUX : '';
     }
 }
+
+export function pathToFileURL(absPath: string, normalize?: boolean): string {
+    if (normalize) {
+        absPath = path.normalize(absPath);
+        absPath = forceForwardSlashes(absPath);
+    }
+
+    absPath = (absPath.startsWith('/') ? 'file://' : 'file:///') +  absPath;
+    return encodeURI(absPath);
+}
+
+export function forceForwardSlashes(aUrl: string): string {
+    return aUrl
+        .replace(/\\\//g, '/') // Replace \/ (unnecessarily escaped forward slash)
+        .replace(/\\/g, '/');
+}

@@ -17,7 +17,7 @@ let telemetryReporter: TelemetryReporter;
 export function activate(context: vscode.ExtensionContext) {
 
     const packageInfo = getPackageInfo(context);
-    if (packageInfo && vscode.env.sessionId !== 'someValue.machineId') {
+    if (packageInfo && vscode.env.machineId !== 'someValue.machineId') {
         // Use the real telemetry reporter
         telemetryReporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
     } else {

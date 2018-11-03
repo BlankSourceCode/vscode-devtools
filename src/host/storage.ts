@@ -78,6 +78,17 @@ devToolsFrame.onload = () => {
         set: function () { }
     });
 
+    // Override the paused event revealer so that hitting a bp will not switch to the sources tab
+    const realLoadResource = (dtWindow as any).Runtime.loadResourcePromise as (url: string) => Promise<string>;
+    (dtWindow as any).Runtime.loadResourcePromise = async function (url: string): Promise<string> {
+        if (url === 'sources/module.json') {
+            const content = await realLoadResource(url);
+            return content.replace(/{[^}]+DebuggerPausedDetailsRevealer[^}]+},/gm, '');
+        } else {
+            return realLoadResource(url);
+        }
+    };
+
     const reportError = function (name: string, stack: string) {
         const telemetry = {
             name: `devtools/${name}`,

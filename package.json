@@ -2,7 +2,7 @@
   "name": "vscode-devtools-for-chrome",
   "displayName": "DevTools for Chrome",
   "description": "Open the chrome devtools as a dockable webview",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "preview": true,
   "license": "SEE LICENSE IN LICENSE",
   "publisher": "codemooseus",

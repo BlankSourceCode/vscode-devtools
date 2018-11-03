@@ -8,10 +8,10 @@ A VSCode extension to host the chrome devtools inside of a webview.
     </a>
 </p>
 
-## Attach to a running chrome instance:
+## Attaching to a running chrome instance:
 ![Demo1](demo.gif)
 
-## Launch a chrome debugger project and use screencasting:
+## Launching a 'debugger for chrome' project and using screencast:
 ![Demo2](demo2.gif)
 
 # Using the extension
@@ -32,7 +32,9 @@ A VSCode extension to host the chrome devtools inside of a webview.
 
 # Known Issues
 - Prototyping stage
-- Settings in the devtools are not persisted
+- Having the DevTools in a non-foreground tab can cause issues while debugging
+    - This is due to VS Code suspending script execution of non-foreground webviews
+    - The workaround is to put the DevTools in a split view tab so that they are always visible while open
 - Chrome browser extensions can sometimes cause the webview to terminate
 
 # Developing the extension itself

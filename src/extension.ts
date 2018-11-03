@@ -173,12 +173,12 @@ class DevToolsPanel {
     private _disposables: vscode.Disposable[] = [];
 
     public static createOrShow(context: vscode.ExtensionContext, targetUrl: string) {
-        const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+        const column = vscode.ViewColumn.Beside;
 
         if (DevToolsPanel.currentPanel) {
             DevToolsPanel.currentPanel._panel.reveal(column);
         } else {
-            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column || vscode.ViewColumn.Two, {
+            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column, {
                 enableScripts: true,
                 enableCommandUris: true,
                 retainContextWhenHidden: true

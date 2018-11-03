@@ -94,7 +94,7 @@ async function launch(context: vscode.ExtensionContext, launchUrl?: string, chro
         telemetryReporter.sendTelemetryEvent('launch/error/tab_not_found', telemetryProps);
         attach(context, viaConfig);
     } else {
-        DevToolsPanel.createOrShow(context.extensionPath, target.webSocketDebuggerUrl);
+        DevToolsPanel.createOrShow(context, target.webSocketDebuggerUrl);
     }
 }
 
@@ -116,7 +116,7 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean) {
 
         vscode.window.showQuickPick(items).then((selection) => {
             if (selection) {
-                DevToolsPanel.createOrShow(context.extensionPath, selection.detail as string);
+                DevToolsPanel.createOrShow(context, selection.detail as string);
             }
         });
     } else {
@@ -164,6 +164,7 @@ async function getListOfTargets(hostname: string, port: number): Promise<Array<a
 class DevToolsPanel {
     private static currentPanel: DevToolsPanel;
     private readonly _panel: vscode.WebviewPanel;
+    private readonly _context: vscode.ExtensionContext;
     private readonly _extensionPath: string;
     private readonly _targetUrl: string;
     private _socket: WebSocket = undefined;
@@ -171,29 +172,30 @@ class DevToolsPanel {
     private _messages: any[] = [];
     private _disposables: vscode.Disposable[] = [];
 
-    public static createOrShow(extensionPath: string, targetUrl: string) {
-        const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+    public static createOrShow(context: vscode.ExtensionContext, targetUrl: string) {
+        const column = vscode.ViewColumn.Beside;
 
         if (DevToolsPanel.currentPanel) {
             DevToolsPanel.currentPanel._panel.reveal(column);
         } else {
-            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column || vscode.ViewColumn.Two, {
+            const panel = vscode.window.createWebviewPanel('devtools-for-chrome', 'DevTools', column, {
                 enableScripts: true,
                 enableCommandUris: true,
                 retainContextWhenHidden: true
             });
 
-            DevToolsPanel.currentPanel = new DevToolsPanel(panel, extensionPath, targetUrl);
+            DevToolsPanel.currentPanel = new DevToolsPanel(panel, context, targetUrl);
         }
     }
 
-    public static revive(panel: vscode.WebviewPanel, extensionPath: string, targetUrl: string) {
-        DevToolsPanel.currentPanel = new DevToolsPanel(panel, extensionPath, targetUrl);
+    public static revive(panel: vscode.WebviewPanel, context: vscode.ExtensionContext, targetUrl: string) {
+        DevToolsPanel.currentPanel = new DevToolsPanel(panel, context, targetUrl);
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionPath: string, targetUrl: string) {
+    private constructor(panel: vscode.WebviewPanel, context: vscode.ExtensionContext, targetUrl: string) {
         this._panel = panel;
-        this._extensionPath = extensionPath;
+        this._context = context;
+        this._extensionPath = context.extensionPath;
         this._targetUrl = targetUrl;
 
         this._update();
@@ -251,6 +253,10 @@ class DevToolsPanel {
             this._disposeSocket();
         } else if (message.substr(0, 10) === 'telemetry:') {
             return this._sendTelemetryMessage(message.substr(10));
+        } else if (message.substr(0, 9) === 'getState:') {
+            return this._getDevtoolsState();
+        } else if (message.substr(0, 9) === 'setState:') {
+            return this._setDevtoolsState(message.substr(9));
         }
 
         if (!this._socket) {
@@ -318,6 +324,26 @@ class DevToolsPanel {
     private _sendTelemetryMessage(message: string) {
         const telemetry = JSON.parse(message);
         telemetryReporter.sendTelemetryEvent(telemetry.name, telemetry.properties, telemetry.metrics);
+    }
+
+    private _getDevtoolsState() {
+        const allPrefsKey = 'devtools-preferences';
+        const allPrefs: any = this._context.workspaceState.get(allPrefsKey) ||
+        {
+            uiTheme: '"dark"',
+            screencastEnabled: false
+        };
+        this._panel.webview.postMessage(`preferences:${JSON.stringify(allPrefs)}`);
+    }
+
+    private _setDevtoolsState(state: string) {
+        // Parse the preference from the message and store it
+        const pref = JSON.parse(state) as { name: string, value: string };
+
+        const allPrefsKey = 'devtools-preferences';
+        const allPrefs: any = this._context.workspaceState.get(allPrefsKey) || {};
+        allPrefs[pref.name] = pref.value;
+        this._context.workspaceState.update(allPrefsKey, allPrefs);
     }
 
     private _update() {

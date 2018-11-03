@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
         telemetryReporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
     } else {
         // Fallback to a fake telemetry reporter
-        telemetryReporter = new DebugTelemetryReporter('', '', '');
+        telemetryReporter = new DebugTelemetryReporter();
     }
     context.subscriptions.push(telemetryReporter);
 
@@ -355,8 +355,8 @@ class DevToolsPanel {
 }
 
 class DebugTelemetryReporter extends TelemetryReporter {
-    constructor(extensionId: string, extensionVersion: string, key: string) {
-        super(extensionId, extensionVersion, key);
+    constructor() {
+        super('extensionId', 'extensionVersion', 'key');
     }
 
     public sendTelemetryEvent(name: string, properties?: any, measurements?: any) {

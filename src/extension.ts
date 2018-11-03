@@ -17,7 +17,13 @@ let telemetryReporter: TelemetryReporter;
 export function activate(context: vscode.ExtensionContext) {
 
     const packageInfo = getPackageInfo(context);
-    telemetryReporter = packageInfo && new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
+    if (packageInfo && vscode.env.sessionId !== 'someValue.machineId') {
+        // Use the real telemetry reporter
+        telemetryReporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
+    } else {
+        // Fallback to a fake telemetry reporter
+        telemetryReporter = new DebugTelemetryReporter('', '', '');
+    }
     context.subscriptions.push(telemetryReporter);
 
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.launch', async () => {
@@ -345,5 +351,19 @@ class DevToolsPanel {
             <iframe id="host" style="width: 100%; height: 100%" frameBorder="0" src="${htmlUri}"></iframe>
             </html>
             `;
+    }
+}
+
+class DebugTelemetryReporter extends TelemetryReporter {
+    constructor(extensionId: string, extensionVersion: string, key: string) {
+        super(extensionId, extensionVersion, key);
+    }
+
+    public sendTelemetryEvent(name: string, properties?: any, measurements?: any) {
+        console.log(`${name}: ${JSON.stringify(properties)}, ${JSON.stringify(properties)}`);
+    }
+
+    public dispose(): Promise<any> {
+        return Promise.resolve();
     }
 }

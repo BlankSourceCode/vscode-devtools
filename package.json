@@ -2,7 +2,7 @@
   "name": "vscode-devtools-for-chrome",
   "displayName": "DevTools for Chrome",
   "description": "Open the chrome devtools as a dockable webview",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "preview": true,
   "license": "SEE LICENSE IN LICENSE",
   "publisher": "codemooseus",
@@ -124,7 +124,7 @@
   },
   "devDependencies": {
     "@types/node": "^10.5.2",
-    "@types/shelljs": "^0.8.0", 
+    "@types/shelljs": "^0.8.0",
     "@types/ws": "^6.0.1",
     "shelljs": "^0.8.2",
     "ts-node": "^7.0.1",

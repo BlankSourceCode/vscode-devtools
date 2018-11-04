@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import TelemetryReporter from 'vscode-extension-telemetry';
 import WebSocket from 'ws';
+import TelemetryReporter from './telemetry';
 import QuickPickItem = vscode.QuickPickItem;
 import * as utils from './utils';
 

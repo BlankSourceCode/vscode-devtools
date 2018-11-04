@@ -13,7 +13,8 @@
                 "node_modules/*",
                 "src/types/*"
             ]
-        }
+        },
+        "skipLibCheck": true
     },
     "include": [
         "src/**/*"

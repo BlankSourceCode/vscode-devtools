@@ -15,6 +15,29 @@ A VSCode extension to host the chrome devtools inside of a webview.
 ![Demo2](demo2.gif)
 
 # Using the extension
+
+## Launching as a Debugger
+You can launch the Chrome DevTools hosted in VS Code like you would a debugger, by using a launch.json config file. However, the Chrome DevTools aren't a debugger and any breakpoints set in VS Code won't be hit, you can of course use the script debugger in Chrome DevTools. 
+
+To do this in your `launch.json` add a new debug config with two parameters.
+- `type` - The name of the debugger which must be `devtools-for-chrome`. Required.
+- `url` - The url to launch Chrome at. Optional.
+- `request` - Whether a new tab in Chrome should be opened `launch` or to use an exsisting tab `attach` matched by URI. Optional.
+- `name` - A friendly name to show in the VS Code UI. Required.
+`
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "type": "devtools-for-chrome",
+            "request": "launch",
+            "name": "Launch Chrome",
+            "url": "${workspaceFolder}/index.html"
+        }
+    ]
+}
+`
+
 ## Launching Chrome manually
 - Start chrome with no extensions and remote-debugging enabled on port 9222:
     - `chrome.exe --disable-extensions --remote-debugging-port=9222`

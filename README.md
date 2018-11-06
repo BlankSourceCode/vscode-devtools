@@ -24,7 +24,7 @@ To do this in your `launch.json` add a new debug config with two parameters.
 - `url` - The url to launch Chrome at. Optional.
 - `request` - Whether a new tab in Chrome should be opened `launch` or to use an exsisting tab `attach` matched by URI. Optional.
 - `name` - A friendly name to show in the VS Code UI. Required.
-`
+```
 {
     "version": "0.1.0",
     "configurations": [
@@ -36,7 +36,7 @@ To do this in your `launch.json` add a new debug config with two parameters.
         }
     ]
 }
-`
+```
 
 ## Launching Chrome manually
 - Start chrome with no extensions and remote-debugging enabled on port 9222:

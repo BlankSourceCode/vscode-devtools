@@ -257,6 +257,8 @@ class DevToolsPanel {
             return this._getDevtoolsState();
         } else if (message.substr(0, 9) === 'setState:') {
             return this._setDevtoolsState(message.substr(9));
+        } else if (message.substr(0, 7) === 'getUrl:') {
+            return this._getDevtoolsUrl(message.substr(7));
         }
 
         if (!this._socket) {
@@ -336,14 +338,28 @@ class DevToolsPanel {
         this._panel.webview.postMessage(`preferences:${JSON.stringify(allPrefs)}`);
     }
 
-    private _setDevtoolsState(state: string) {
+    private _setDevtoolsState(message: string) {
         // Parse the preference from the message and store it
-        const pref = JSON.parse(state) as { name: string, value: string };
+        const pref = JSON.parse(message) as { name: string, value: string };
 
         const allPrefsKey = 'devtools-preferences';
         const allPrefs: any = this._context.workspaceState.get(allPrefsKey) || {};
         allPrefs[pref.name] = pref.value;
         this._context.workspaceState.update(allPrefsKey, allPrefs);
+    }
+
+    private async _getDevtoolsUrl(message: string) {
+        // Parse the request from the message and store it
+        const request = JSON.parse(message) as { id: number, url: string };
+
+        let content = '';
+        try {
+            content = await utils.getURL(request.url);
+        } catch (ex) {
+            content = '';
+        }
+
+        this._panel.webview.postMessage(`setUrl:${JSON.stringify({id: request.id, content})}`);
     }
 
     private _update() {

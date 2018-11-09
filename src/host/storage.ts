@@ -67,6 +67,48 @@ class ToolsWebSocket {
     }
 }
 
+class ToolsResourceLoader {
+    private _window: Window;
+    private _realLoadResource: (url: string) => Promise<string>;
+    private _urlLoadNextId: number;
+    private _urlLoadResolvers: Map<number, (url: string) => void>;
+
+    constructor(dtWindow: Window) {
+        this._window = dtWindow;
+        this._realLoadResource = (this._window as any).Runtime.loadResourcePromise;
+        this._urlLoadNextId = 0;
+        this._urlLoadResolvers = new Map();
+        (this._window as any).Runtime.loadResourcePromise = this.loadResource.bind(this);
+    }
+
+    public resolveUrlRequest(message: string) {
+        // Parse the request from the message and store it
+        const response = JSON.parse(message) as { id: number, content: string };
+
+        if (this._urlLoadResolvers.has(response.id)) {
+            this._urlLoadResolvers.get(response.id)(response.content);
+            this._urlLoadResolvers.delete(response.id);
+        }
+    }
+
+    private async loadResource(url: string): Promise<string> {
+        if (url === 'sources/module.json') {
+            // Override the paused event revealer so that hitting a bp will not switch to the sources tab
+            const content = await this._realLoadResource(url);
+            return content.replace(/{[^}]+DebuggerPausedDetailsRevealer[^}]+},/gm, '');
+        } if (url.substr(0, 7) === 'http://' || url.substr(0, 8) === 'https://') {
+            // Forward the cross domain request over to the extension
+            return new Promise((resolve: (url: string) => void, reject) => {
+                const id = this._urlLoadNextId++;
+                this._urlLoadResolvers.set(id, resolve);
+                window.parent.postMessage(`getUrl:${JSON.stringify({ id, url })}`, '*');
+            });
+        } else {
+            return this._realLoadResource(url);
+        }
+    }
+}
+
 const devToolsFrame = document.getElementById('devtools') as HTMLIFrameElement;
 devToolsFrame.onload = () => {
     const dtWindow = devToolsFrame.contentWindow;
@@ -74,23 +116,13 @@ devToolsFrame.onload = () => {
     // Override the apis and websocket so that we can control them
     (dtWindow as any).InspectorFrontendHost = new ToolsHost();
     (dtWindow as any).WebSocket = ToolsWebSocket;
+    (dtWindow as any).ResourceLoaderOverride = new ToolsResourceLoader(dtWindow);
 
     // Prevent the devtools from using localStorage since it doesn't exist in data uris
     Object.defineProperty(dtWindow, 'localStorage', {
         get: function () { return undefined; },
         set: function () { }
     });
-
-    // Override the paused event revealer so that hitting a bp will not switch to the sources tab
-    const realLoadResource = (dtWindow as any).Runtime.loadResourcePromise as (url: string) => Promise<string>;
-    (dtWindow as any).Runtime.loadResourcePromise = async function (url: string): Promise<string> {
-        if (url === 'sources/module.json') {
-            const content = await realLoadResource(url);
-            return content.replace(/{[^}]+DebuggerPausedDetailsRevealer[^}]+},/gm, '');
-        } else {
-            return realLoadResource(url);
-        }
-    };
 
     // Add unhandled exception listeners for telemetry
     const reportError = function (name: string, stack: string) {
@@ -115,5 +147,7 @@ devToolsFrame.onload = () => {
 window.addEventListener('message', (e) => {
     if (e.data.substr(0, 12) === 'preferences:') {
         (devToolsFrame.contentWindow as any).InspectorFrontendHost.fireGetStateCallback(e.data.substr(12));
+    } else if (e.data.substr(0, 7) === 'setUrl:') {
+        (devToolsFrame.contentWindow as any).ResourceLoaderOverride.resolveUrlRequest(e.data.substr(7));
     }
 });

@@ -50,11 +50,14 @@ export function activate(context: vscode.ExtensionContext) {
                 let targetUri: string = utils.getUrlFromConfig(folder, config);
                 if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
                     attach(context, /* viaConfig= */ true, targetUri);
+                    telemetryReporter.sendTelemetryEvent('launch/command/launch');
                 } else if (config.request && config.request.localeCompare('launch', 'en', { sensitivity: 'base' }) == 0) {
                     launch(context, targetUri, config.chromePath);
+                    telemetryReporter.sendTelemetryEvent('launch/command/attach');
                 }
             } else {
                 vscode.window.showErrorMessage('No supported launch config was found.');
+                telemetryReporter.sendTelemetryEvent('launch/error/config_not_found');
             }
             return;
         }

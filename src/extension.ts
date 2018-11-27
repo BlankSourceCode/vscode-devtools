@@ -46,12 +46,12 @@ export function activate(context: vscode.ExtensionContext) {
         },
 
         resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
-            if (config && config.type == debuggerType) {
+            if (config && config.type === debuggerType) {
                 const targetUri: string = utils.getUrlFromConfig(folder, config);
-                if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
+                if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) === 0) {
                     attach(context, /* viaConfig= */ true, targetUri);
                     telemetryReporter.sendTelemetryEvent('launch/command/attach');
-                } else if (config.request && config.request.localeCompare('launch', 'en', { sensitivity: 'base' }) == 0) {
+                } else if (config.request && config.request.localeCompare('launch', 'en', { sensitivity: 'base' }) === 0) {
                     launch(context, targetUri, config.chromePath);
                     telemetryReporter.sendTelemetryEvent('launch/command/launch');
                 }
@@ -86,7 +86,7 @@ async function launch(context: vscode.ExtensionContext, launchUrl?: string, chro
 
     const target = JSON.parse(await utils.getURL(`http://${hostname}:${port}/json/new?${launchUrl}`));
 
-    if (!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl == '') {
+    if (!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl === '') {
         vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${launchUrl}).`);
         telemetryReporter.sendTelemetryEvent('launch/error/tab_not_found', telemetryProps);
         attach(context, viaConfig, defaultUrl);
@@ -117,7 +117,7 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targ
 
         let targetWebsocketUrl = '';
         if (typeof targetUrl === 'string' && targetUrl.length > 0 && targetUrl !== defaultUrl) {
-            const matches = items.filter(i => targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) == 0);
+            const matches = items.filter(i => targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) === 0);
             if (matches && matches.length > 0 ) {
                 targetWebsocketUrl = matches[0].detail;
             } else {

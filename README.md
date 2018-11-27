@@ -22,7 +22,8 @@ You can launch the Chrome DevTools hosted in VS Code like you would a debugger, 
 To do this in your `launch.json` add a new debug config with two parameters.
 - `type` - The name of the debugger which must be `devtools-for-chrome`. Required.
 - `url` - The url to launch Chrome at. Optional.
-- `request` - Whether a new tab in Chrome should be opened `launch` or to use an exsisting tab `attach` matched by URI. Optional.
+- `file` - The local file path to launch Chrome at. Optional.
+- `request` - Whether a new tab in Chrome should be opened `launch` or to use an exsisting tab `attach` matched on URL. Optional.
 - `name` - A friendly name to show in the VS Code UI. Required.
 ```
 {
@@ -31,8 +32,14 @@ To do this in your `launch.json` add a new debug config with two parameters.
         {
             "type": "devtools-for-chrome",
             "request": "launch",
-            "name": "Launch Chrome",
-            "url": "${workspaceFolder}/index.html"
+            "name": "Launch Chrome DevTools",
+            "file": "${workspaceFolder}/index.html"
+        },
+        {
+            "type": "devtools-for-chrome",
+            "request": "attach",
+            "name": "Attach Chrome DevTools",
+            "url": "http://localhost:8000/"
         }
     ]
 }

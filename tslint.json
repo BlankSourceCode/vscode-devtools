@@ -62,6 +62,7 @@
         "no-internal-module": true,
         "no-trailing-whitespace": true,
         "no-null-keyword": true,
-        "prefer-const": true
+        "prefer-const": true,
+        "triple-equals": true
     }
 }

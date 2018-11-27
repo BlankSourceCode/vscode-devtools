@@ -12,6 +12,7 @@ interface IPackageInfo {
 }
 
 const debuggerType: string = 'devtools-for-chrome';
+const defaultUrl: string = 'about:blank';
 let telemetryReporter: TelemetryReporter;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -31,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('devtools-for-chrome.attach', async () => {
-        attach(context, /* viaConfig= */ false);
+        attach(context, /* viaConfig= */ false, defaultUrl);
     }));
 
     vscode.debug.registerDebugConfigurationProvider(debuggerType, {
@@ -45,22 +46,18 @@ export function activate(context: vscode.ExtensionContext) {
         },
 
         resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
-            if (config && config.type == debuggerType) {
-                if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
-                    attach(context, /* viaConfig= */ true);
-                } else {
-                    let launchUri: string = '';
-                    if (folder.uri.scheme == 'file') {
-                        const baseUrl: string = config.file || config.url;
-                        const replacedUri: string = baseUrl.replace('${workspaceFolder}', folder.uri.path);
-                        launchUri = utils.pathToFileURL(replacedUri);
-                    } else {
-                        launchUri = config.url;
-                    }
-                    launch(context, launchUri, config.chromePath);
+            if (config && config.type === debuggerType) {
+                const targetUri: string = utils.getUrlFromConfig(folder, config);
+                if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) === 0) {
+                    attach(context, /* viaConfig= */ true, targetUri);
+                    telemetryReporter.sendTelemetryEvent('launch/command/attach');
+                } else if (config.request && config.request.localeCompare('launch', 'en', { sensitivity: 'base' }) === 0) {
+                    launch(context, targetUri, config.chromePath);
+                    telemetryReporter.sendTelemetryEvent('launch/command/launch');
                 }
             } else {
                 vscode.window.showErrorMessage('No supported launch config was found.');
+                telemetryReporter.sendTelemetryEvent('launch/error/config_not_found');
             }
             return;
         }
@@ -84,21 +81,21 @@ async function launch(context: vscode.ExtensionContext, launchUrl?: string, chro
             return;
         }
 
-        utils.launchLocalChrome(pathToChrome, port, 'about:blank');
+        utils.launchLocalChrome(pathToChrome, port, defaultUrl);
     }
 
     const target = JSON.parse(await utils.getURL(`http://${hostname}:${port}/json/new?${launchUrl}`));
 
-    if (!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl == '') {
+    if (!target || !target.webSocketDebuggerUrl || target.webSocketDebuggerUrl === '') {
         vscode.window.showErrorMessage(`Could not find the launched Chrome tab: (${launchUrl}).`);
         telemetryReporter.sendTelemetryEvent('launch/error/tab_not_found', telemetryProps);
-        attach(context, viaConfig);
+        attach(context, viaConfig, defaultUrl);
     } else {
         DevToolsPanel.createOrShow(context, target.webSocketDebuggerUrl);
     }
 }
 
-async function attach(context: vscode.ExtensionContext, viaConfig: boolean) {
+async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targetUrl: string) {
     const telemetryProps = { viaConfig: `${viaConfig}` };
     telemetryReporter.sendTelemetryEvent('attach', telemetryProps);
 
@@ -111,14 +108,32 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean) {
 
         responseArray.forEach(i => {
             i = utils.fixRemoteUrl(hostname, port, i);
-            items.push({ label: i.title, description: i.url, detail: i.webSocketDebuggerUrl });
+            items.push({
+                label: i.title,
+                description: i.url,
+                detail: i.webSocketDebuggerUrl
+            });
         });
 
-        vscode.window.showQuickPick(items).then((selection) => {
-            if (selection) {
-                DevToolsPanel.createOrShow(context, selection.detail as string);
+        let targetWebsocketUrl = '';
+        if (typeof targetUrl === 'string' && targetUrl.length > 0 && targetUrl !== defaultUrl) {
+            const matches = items.filter(i => targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) === 0);
+            if (matches && matches.length > 0 ) {
+                targetWebsocketUrl = matches[0].detail;
+            } else {
+                vscode.window.showErrorMessage(`Couldn't attach to ${targetUrl}.`);
             }
-        });
+        }
+
+        if (targetWebsocketUrl && targetWebsocketUrl.length > 0) {
+            DevToolsPanel.createOrShow(context, targetWebsocketUrl as string);
+        } else {
+            vscode.window.showQuickPick(items).then((selection) => {
+                if (selection) {
+                    DevToolsPanel.createOrShow(context, selection.detail as string);
+                }
+            });
+        }
     } else {
         telemetryReporter.sendTelemetryEvent('attach/error/no_json_array', telemetryProps);
     }
@@ -331,10 +346,10 @@ class DevToolsPanel {
     private _getDevtoolsState() {
         const allPrefsKey = 'devtools-preferences';
         const allPrefs: any = this._context.workspaceState.get(allPrefsKey) ||
-        {
-            uiTheme: '"dark"',
-            screencastEnabled: false
-        };
+            {
+                uiTheme: '"dark"',
+                screencastEnabled: false
+            };
         this._panel.webview.postMessage(`preferences:${JSON.stringify(allPrefs)}`);
     }
 
@@ -359,7 +374,7 @@ class DevToolsPanel {
             content = '';
         }
 
-        this._panel.webview.postMessage(`setUrl:${JSON.stringify({id: request.id, content})}`);
+        this._panel.webview.postMessage(`setUrl:${JSON.stringify({ id: request.id, content })}`);
     }
 
     private _update() {

@@ -6,6 +6,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
+import * as vscode from 'vscode';
 
 export function getURL(aUrl: string, options: https.RequestOptions = {}): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -140,4 +141,18 @@ export function forceForwardSlashes(aUrl: string): string {
     return aUrl
         .replace(/\\\//g, '/') // Replace \/ (unnecessarily escaped forward slash)
         .replace(/\\/g, '/');
+}
+
+export function getUrlFromConfig(folder: vscode.WorkspaceFolder, config: vscode.DebugConfiguration): string {
+    let outUrlString = '';
+
+    if (config.file) {
+        outUrlString = config.file;
+        outUrlString = outUrlString.replace('${workspaceFolder}', folder.uri.path);
+        outUrlString = pathToFileURL(outUrlString);
+    } else if (config.url) {
+        outUrlString = config.url;
+    }
+
+    return outUrlString;
 }

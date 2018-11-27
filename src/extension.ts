@@ -47,13 +47,13 @@ export function activate(context: vscode.ExtensionContext) {
 
         resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
             if (config && config.type == debuggerType) {
-                let targetUri: string = utils.getUrlFromConfig(folder, config);
+                const targetUri: string = utils.getUrlFromConfig(folder, config);
                 if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
                     attach(context, /* viaConfig= */ true, targetUri);
-                    telemetryReporter.sendTelemetryEvent('launch/command/launch');
+                    telemetryReporter.sendTelemetryEvent('launch/command/attach');
                 } else if (config.request && config.request.localeCompare('launch', 'en', { sensitivity: 'base' }) == 0) {
                     launch(context, targetUri, config.chromePath);
-                    telemetryReporter.sendTelemetryEvent('launch/command/attach');
+                    telemetryReporter.sendTelemetryEvent('launch/command/launch');
                 }
             } else {
                 vscode.window.showErrorMessage('No supported launch config was found.');
@@ -108,26 +108,24 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targ
 
         responseArray.forEach(i => {
             i = utils.fixRemoteUrl(hostname, port, i);
-            items.push({ 
-                label: i.title, 
-                description: i.url, 
-                detail: i.webSocketDebuggerUrl 
+            items.push({
+                label: i.title,
+                description: i.url,
+                detail: i.webSocketDebuggerUrl
             });
         });
 
-        let targetMatch:boolean = false;
-        let targetWebsocketUrl:string = '';
+        let targetWebsocketUrl = '';
         if (typeof targetUrl === 'string' && targetUrl.length > 0 && targetUrl != defaultUrl) {
             const matches = items.filter(i => targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) == 0);
-            if(matches && matches.length > 0 ){
+            if (matches && matches.length > 0 ) {
                 targetWebsocketUrl = matches[0].detail;
-                targetMatch = true;
             } else {
                 vscode.window.showErrorMessage(`Couldn't attach to ${targetUrl}.`);
             }
-        } 
+        }
 
-        if(targetMatch){ 
+        if (targetWebsocketUrl && targetWebsocketUrl.length > 0) {
             DevToolsPanel.createOrShow(context, targetWebsocketUrl as string);
         } else {
             vscode.window.showQuickPick(items).then((selection) => {

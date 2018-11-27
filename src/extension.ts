@@ -116,7 +116,7 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targ
         });
 
         let targetWebsocketUrl = '';
-        if (typeof targetUrl === 'string' && targetUrl.length > 0 && targetUrl != defaultUrl) {
+        if (typeof targetUrl === 'string' && targetUrl.length > 0 && targetUrl !== defaultUrl) {
             const matches = items.filter(i => targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) == 0);
             if (matches && matches.length > 0 ) {
                 targetWebsocketUrl = matches[0].detail;

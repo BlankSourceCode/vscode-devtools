@@ -49,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (config && config.type == debuggerType) {
                 let targetUri: string = utils.getUrlFromConfig(folder, config);
                 if (config.request && config.request.localeCompare('attach', 'en', { sensitivity: 'base' }) == 0) {
-                    attach(context, /* viaConfig= */ true, defaultUrl);
+                    attach(context, /* viaConfig= */ true, targetUri);
                 } else if (config.request && config.request.localeCompare('launch', 'en', { sensitivity: 'base' }) == 0) {
                     launch(context, targetUri, config.chromePath);
                 }
@@ -112,12 +112,12 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targ
             });
         });
 
-        let targetUrl: string = '';
         let targetMatch:boolean = false;
+        let targetWebsocketUrl:string = '';
         if (typeof targetUrl === 'string' && targetUrl.length > 0 && targetUrl != defaultUrl) {
-            const matches = items.filter(i => i.description == defaultUrl);
+            const matches = items.filter(i => targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) == 0);
             if(matches && matches.length > 0 ){
-                targetUrl = matches[0].description;
+                targetWebsocketUrl = matches[0].detail;
                 targetMatch = true;
             } else {
                 vscode.window.showErrorMessage(`Couldn't attach to ${targetUrl}.`);
@@ -125,7 +125,7 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targ
         } 
 
         if(targetMatch){ 
-            DevToolsPanel.createOrShow(context, targetUrl as string);
+            DevToolsPanel.createOrShow(context, targetWebsocketUrl as string);
         } else {
             vscode.window.showQuickPick(items).then((selection) => {
                 if (selection) {

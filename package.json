@@ -122,6 +122,7 @@
     }
   },
   "scripts": {
+    "package": "vsce package",
     "vscode:prepublish": "npm run build",
     "build": "npm run build-ts && npm run build-copy",
     "build-ts": "tsc",
@@ -135,6 +136,7 @@
   "dependencies": {
     "applicationinsights": "^1.0.6",
     "chrome-devtools-frontend": "^1.0.602557",
+    "vsce": "^1.54.0",
     "vscode": "^1.1.18",
     "ws": "^6.1.0"
   },

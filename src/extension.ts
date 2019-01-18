@@ -41,8 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
                 type: debuggerType,
                 name: 'Launch Chrome against localhost',
                 request: 'launch',
-                url: 'http://localhost:8080',
-                warning: ["foooo line #1", "foooo line #2", "foooo line #3", "foooo line #4", "foooo line #5"]
+                url: 'http://localhost:8080'
             }]);
         },
 

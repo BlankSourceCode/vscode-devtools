@@ -122,7 +122,7 @@
     }
   },
   "scripts": {
-    "package": "vsce package",
+    "package": "vsce package --out vscode-devtools.vsix",
     "vscode:prepublish": "npm run build",
     "build": "npm run build-ts && npm run build-copy",
     "build-ts": "tsc",

@@ -37,12 +37,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.debug.registerDebugConfigurationProvider(debuggerType, {
         provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration[]> {
-            return [{
+            return Promise.resolve([{
                 type: debuggerType,
                 name: 'Launch Chrome against localhost',
                 request: 'launch',
-                url: 'http://localhost:8080',
-            }];
+                url: 'http://localhost:8080'
+            }]);
         },
 
         resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {

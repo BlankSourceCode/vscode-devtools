@@ -1,3 +1,7 @@
+## 0.0.5
+* Added attach config to attach to an already existing chrome instance - [#10](https://github.com/CodeMooseUS/vscode-devtools/issues/10)
+* Downgraded event-stream npm package due to security issue - [info](https://code.visualstudio.com/blogs/2018/11/26/event-stream)
+
 ## 0.0.4
 * Fixed a crash due to sourcemaps - [#8](https://github.com/CodeMooseUS/vscode-devtools/issues/8)
 
@@ -5,7 +9,7 @@
 * Fixed an issue with telemetry not updating user count correctly
 
 ## 0.0.2
-* Added devtools settings persistance - [#1](https://github.com/CodeMooseUS/vscode-devtools/issues/1)
+* Added devtools settings persistence - [#1](https://github.com/CodeMooseUS/vscode-devtools/issues/1)
     * Any settings that you change from within the devtools themselves will now be there next time you open the devtools.
     * This includes changing the devtools theme which auto reloads the tools.
 * Added anonymous telemetry reporting to see which functions need implementing next based on usage.

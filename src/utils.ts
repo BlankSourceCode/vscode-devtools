@@ -150,7 +150,7 @@ export function getUrlFromConfig(folder: vscode.WorkspaceFolder, config: vscode.
         outUrlString = config.file;
         outUrlString = outUrlString.replace('${workspaceFolder}', folder.uri.path);
         outUrlString = pathToFileURL(outUrlString);
-    } else if (config.url ) {
+    } else if (config.url) {
         outUrlString = config.url;
     }
 

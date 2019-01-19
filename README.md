@@ -39,7 +39,7 @@ To do this in your `launch.json` add a new debug config with two parameters.
             "type": "devtools-for-chrome",
             "request": "attach",
             "name": "Attach Chrome DevTools",
-            "file": "${workspaceFolder}/index.html"
+            "url": "http://localhost:8000/"
         }
     ]
 }

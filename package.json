@@ -2,7 +2,7 @@
   "name": "vscode-devtools-for-chrome",
   "displayName": "DevTools for Chrome",
   "description": "Open the chrome devtools as a dockable webview",
-  "version": "0.1.1",
+  "version": "0.0.6",
   "preview": true,
   "license": "SEE LICENSE IN LICENSE",
   "publisher": "codemooseus",
@@ -122,32 +122,35 @@
     }
   },
   "scripts": {
-    "package": "vsce package --out vscode-devtools.vsix",
+    "package": "npx vsce package --out vscode-devtools.vsix",
     "vscode:prepublish": "npm run build",
-    "build": "npm run build-ts && npm run build-copy",
-    "build-ts": "tsc",
-    "build-copy": "ts-node copyStaticAssets.ts",
+    "build": "npm run build-wp && npm run build-post",
+    "build-wp": "webpack",
+    "build-post": "npx ts-node postBuildStep.ts",
     "build-watch": "npm run build && npm run watch",
-    "watch": "npm run watch-ts",
-    "watch-ts": "tsc -w",
-    "lint": "tslint -c tslint.json -p tsconfig.json",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "watch": "npm run watch-wp",
+    "watch-wp": "webpack --watch"
   },
   "dependencies": {
-    "applicationinsights": "^1.0.6",
-    "chrome-devtools-frontend": "^1.0.602557",
-    "vsce": "^1.54.0",
-    "vscode": "^1.1.18",
-    "ws": "^6.1.0"
+    "applicationinsights": "1.6.0",
+    "ws": "7.2.1"
   },
   "devDependencies": {
-    "@types/node": "^10.5.2",
-    "@types/shelljs": "^0.8.0",
-    "@types/ws": "^6.0.1",
-    "@types/applicationinsights": "^0.20.0",
-    "shelljs": "^0.8.2",
-    "ts-node": "^7.0.1",
-    "tslint": "^5.11.0",
-    "typescript": "^3.1.1"
+    "@types/fs-extra": "8.0.1",
+    "@types/node": "13.5.0",
+    "@types/shelljs": "0.8.6",
+    "@types/ws": "7.2.0",
+    "@types/applicationinsights": "0.20.0",
+    "chrome-devtools-frontend": "1.0.602557",
+    "fs-extra": "8.1.0",
+    "shelljs": "0.8.3",
+    "ts-node": "8.6.2",
+    "ts-loader": "6.0.4",
+    "tslint": "6.0.0",
+    "typescript": "3.7.5",
+    "vsce": "1.71.0",
+    "vscode": "1.1.36",
+    "webpack": "4.41.5",
+    "webpack-cli": "3.3.10"
   }
 }

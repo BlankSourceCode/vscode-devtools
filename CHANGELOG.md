@@ -1,3 +1,6 @@
+## 0.0.6
+* Fixed issue with the DevTools showing blank in latest versions of VS Code. - [#18](https://github.com/BlankSourceCode/vscode-devtools/issues/18)
+
 ## 0.0.5
 * Added attach config to attach to an already existing chrome instance - [#10](https://github.com/CodeMooseUS/vscode-devtools/issues/10)
 * Downgraded event-stream npm package due to security issue - [info](https://code.visualstudio.com/blogs/2018/11/26/event-stream)

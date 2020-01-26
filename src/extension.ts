@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import TelemetryReporter from './telemetry';
 import QuickPickItem = vscode.QuickPickItem;
 import * as utils from './utils';
+import packageJson from "../package.json";
 
 interface IPackageInfo {
     name: string;
@@ -104,6 +105,11 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targ
     if (Array.isArray(responseArray)) {
         telemetryReporter.sendTelemetryEvent('attach/list', telemetryProps, { targetCount: responseArray.length });
 
+        if (responseArray.length === 0) {
+            vscode.window.showErrorMessage(`Could not find any targets for attaching.\nDid you remember to run Chrome with '--remote-debugging-port=9222'?`);
+            return;
+        }
+
         const items: QuickPickItem[] = [];
 
         responseArray.forEach(i => {
@@ -117,9 +123,9 @@ async function attach(context: vscode.ExtensionContext, viaConfig: boolean, targ
 
         let targetWebsocketUrl = '';
         if (typeof targetUrl === 'string' && targetUrl.length > 0 && targetUrl !== defaultUrl) {
-            const matches = items.filter(i => targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) === 0);
+            const matches = items.filter(i => i.description && targetUrl.localeCompare(i.description, 'en', { sensitivity: 'base' }) === 0);
             if (matches && matches.length > 0 ) {
-                targetWebsocketUrl = matches[0].detail;
+                targetWebsocketUrl = matches[0].detail || '';
             } else {
                 vscode.window.showErrorMessage(`Couldn't attach to ${targetUrl}.`);
             }
@@ -148,41 +154,51 @@ function getSettings(): { hostname: string, port: number } {
 }
 
 function getPackageInfo(context: vscode.ExtensionContext): IPackageInfo {
-    const extensionPackage = require(context.asAbsolutePath('./package.json'));
-    if (extensionPackage) {
+    if (packageJson) {
         return {
-            name: extensionPackage.name,
-            version: extensionPackage.version,
-            aiKey: extensionPackage.aiKey
+            name: packageJson.name,
+            version: packageJson.version,
+            aiKey: packageJson.aiKey
         };
     }
-    return undefined;
+    return undefined as any as IPackageInfo;
 }
 
-async function getListOfTargets(hostname: string, port: number): Promise<Array<any>> {
-    const checkDiscoveryEndpoint = (url: string) => {
-        return utils.getURL(url, { headers: { Host: 'localhost' } });
+async function getListOfTargets(hostname: string, port: number, useHttps: boolean = false): Promise<Array<any>> {
+    const checkDiscoveryEndpoint = (uri: string) => {
+        return utils.getURL(uri, { headers: { Host: "localhost" } });
     };
 
-    const jsonResponse = await checkDiscoveryEndpoint(`http://${hostname}:${port}/json/list`)
-        .catch(() => checkDiscoveryEndpoint(`http://${hostname}:${port}/json`));
+    const protocol = (useHttps ? "https" : "http");
 
-    let result: Array<string>;
+    let jsonResponse = "";
+    for (const endpoint of ["/json/list", "/json"]) {
+        try {
+            jsonResponse = await checkDiscoveryEndpoint(`${protocol}://${hostname}:${port}${endpoint}`);
+            if (jsonResponse) {
+                break;
+            }
+        } catch {
+            // Do nothing
+        }
+    }
+
+    let result: any[];
     try {
         result = JSON.parse(jsonResponse);
-    } catch (ex) {
-        result = undefined;
+    } catch {
+        result = [];
     }
     return result;
 }
 
 class DevToolsPanel {
-    private static currentPanel: DevToolsPanel;
+    private static currentPanel: DevToolsPanel | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private readonly _context: vscode.ExtensionContext;
     private readonly _extensionPath: string;
     private readonly _targetUrl: string;
-    private _socket: WebSocket = undefined;
+    private _socket: WebSocket | undefined = undefined;
     private _isConnected: boolean = false;
     private _messages: any[] = [];
     private _disposables: vscode.Disposable[] = [];
@@ -251,10 +267,11 @@ class DevToolsPanel {
         if (this._socket) {
             // Reset the socket since the devtools have been reloaded
             telemetryReporter.sendTelemetryEvent('websocket/dispose');
-            this._socket.onopen = undefined;
-            this._socket.onmessage = undefined;
-            this._socket.onerror = undefined;
-            this._socket.onclose = undefined;
+            const s = this._socket as any;
+            s.onopen = undefined;
+            s.onmessage = undefined;
+            s.onerror = undefined;
+            s.onclose = undefined;
             this._socket.close();
             this._socket = undefined;
         }
@@ -382,30 +399,31 @@ class DevToolsPanel {
     }
 
     private _getHtmlForWebview() {
-        const htmlPath = vscode.Uri.file(path.join(this._extensionPath, 'out', 'host', 'devtools.html'));
+        const htmlPath = vscode.Uri.file(path.join(this._extensionPath, 'out/tools/front_end', 'inspector.html'));
         const htmlUri = htmlPath.with({ scheme: 'vscode-resource' });
 
-        const scriptPath = vscode.Uri.file(path.join(this._extensionPath, 'out', 'host', 'messaging.js'));
+        const scriptPath = vscode.Uri.file(path.join(this._extensionPath, 'out', 'host', 'messaging.bundle.js'));
         const scriptUri = scriptPath.with({ scheme: 'vscode-resource' });
+
+        const stylesPath = vscode.Uri.file(path.join(this._extensionPath, 'out', 'common', 'styles.css'));
+        const stylesUri = stylesPath.with({ scheme: 'vscode-resource' });
 
         return `
             <!doctype html>
             <html>
             <head>
                 <meta http-equiv="content-type" content="text/html; charset=utf-8">
-                <style>
-                    html, body, iframe {
-                        height: 100%;
-                        width: 100%;
-                        position: absolute;
-                        padding: 0;
-                        margin: 0;
-                        overflow: hidden;
-                    }
-                </style>
+                <meta http-equiv="Content-Security-Policy"
+                    content="default-src 'none';
+                    frame-src vscode-resource:;
+                    script-src vscode-resource:;
+                    style-src vscode-resource:;">
+                <link href="${stylesUri}" rel="stylesheet"/>
                 <script src="${scriptUri}"></script>
             </head>
-            <iframe id="host" style="width: 100%; height: 100%" frameBorder="0" src="${htmlUri}"></iframe>
+            <body>
+                <iframe id="host" frameBorder="0" src="${htmlUri}?ws=trueD&experiments=true&edgeThemes=true"></iframe>
+            </body>
             </html>
             `;
     }

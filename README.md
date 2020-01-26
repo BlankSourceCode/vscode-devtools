@@ -79,4 +79,3 @@ To do this in your `launch.json` add a new debug config with two parameters.
 - Open the devtools 
     - Run the command - `DevTools for Chrome: Attach to a target`
     - Select a target from the drop down
-

@@ -1,21 +1,29 @@
-declare var acquireVsCodeApi: () => any;
-const vscode = acquireVsCodeApi();
+declare const acquireVsCodeApi: () => any;
 
-let toolsWindow: Window = undefined;
+export function initializeMessaging() {
+    const vscode = acquireVsCodeApi();
 
-window.addEventListener('message', messageEvent => {
-    if (!toolsWindow) {
-        // Find the iframe that contains the devtools
-        toolsWindow = (document.getElementById('host') as HTMLIFrameElement).contentWindow;
-    }
+    let toolsWindow: Window | null;
 
-    if (messageEvent.origin === 'vscode-resource://') {
-        // Pass the message onto the extension
-        vscode.postMessage(messageEvent.data);
-    } else if (toolsWindow) {
-        // Pass the message onto the devtools
-        toolsWindow.postMessage(messageEvent.data, '*');
-    }
-});
+    window.addEventListener("DOMContentLoaded", () => {
+        toolsWindow = (document.getElementById("host") as HTMLIFrameElement).contentWindow;
+    });
 
+    window.addEventListener("message", (messageEvent) => {
+        // Both windows now have a "null" origin so we need to distiguish direction based on protocol,
+        // which will throw an exception when it is from the devtools x-domain window.
+        // See: https://blog.mattbierner.com/vscode-webview-web-learnings/
+        let sendToDevTools = false;
+        try {
+            sendToDevTools = (messageEvent.source as Window).location.protocol === "data:";
+        } catch { /* NO-OP */ }
 
+        if (!sendToDevTools) {
+            // Pass the message onto the extension
+            vscode.postMessage(messageEvent.data);
+        } else if (toolsWindow) {
+            // Pass the message onto the devtools
+            toolsWindow.postMessage(messageEvent.data, "*");
+        }
+    });
+}

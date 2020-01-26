@@ -1,5 +1,9 @@
-class ToolsHost {
-    private _getStateCallback: (prefs: any) => void;
+export interface IRuntimeResourceLoader {
+    loadResourcePromise: (url: string) => Promise<string>;
+}
+
+export class ToolsHost {
+    private _getStateCallback: ((prefs: any) => void) | undefined = undefined;
 
     public getPreferences(callback: (prefs: any) => void) {
         // Load the preference via the extension workspaceState
@@ -29,11 +33,13 @@ class ToolsHost {
 
     public fireGetStateCallback(state: string) {
         const prefs = JSON.parse(state);
-        this._getStateCallback(prefs);
+        if (this._getStateCallback) {
+            this._getStateCallback(prefs);
+        }
     }
 }
 
-class ToolsWebSocket {
+export class ToolsWebSocket {
     constructor(url: string) {
         window.addEventListener('message', messageEvent => {
             if (messageEvent.data && messageEvent.data[0] !== '{') {
@@ -67,7 +73,7 @@ class ToolsWebSocket {
     }
 }
 
-class ToolsResourceLoader {
+export class ToolsResourceLoader {
     private _window: Window;
     private _realLoadResource: (url: string) => Promise<string>;
     private _urlLoadNextId: number;
@@ -86,7 +92,10 @@ class ToolsResourceLoader {
         const response = JSON.parse(message) as { id: number, content: string };
 
         if (this._urlLoadResolvers.has(response.id)) {
-            this._urlLoadResolvers.get(response.id)(response.content);
+            const callback = this._urlLoadResolvers.get(response.id);
+            if (callback) {
+                callback(response.content);
+            }
             this._urlLoadResolvers.delete(response.id);
         }
     }
@@ -108,46 +117,3 @@ class ToolsResourceLoader {
         }
     }
 }
-
-const devToolsFrame = document.getElementById('devtools') as HTMLIFrameElement;
-devToolsFrame.onload = () => {
-    const dtWindow = devToolsFrame.contentWindow;
-
-    // Override the apis and websocket so that we can control them
-    (dtWindow as any).InspectorFrontendHost = new ToolsHost();
-    (dtWindow as any).WebSocket = ToolsWebSocket;
-    (dtWindow as any).ResourceLoaderOverride = new ToolsResourceLoader(dtWindow);
-
-    // Prevent the devtools from using localStorage since it doesn't exist in data uris
-    Object.defineProperty(dtWindow, 'localStorage', {
-        get: function () { return undefined; },
-        set: function () { }
-    });
-
-    // Add unhandled exception listeners for telemetry
-    const reportError = function (name: string, stack: string) {
-        const telemetry = {
-            name: `devtools/${name}`,
-            properties: { stack: stack.substr(0, 30) },
-            metrics: {}
-        };
-        dtWindow.parent.postMessage(`telemetry:${JSON.stringify(telemetry)}`, '*');
-    };
-    (dtWindow as any).addEventListener('error', (event: ErrorEvent) => {
-        const stack = (event && event.error && event.error.stack ? event.error.stack : event.message);
-        reportError('error', stack);
-    });
-    (dtWindow as any).addEventListener('unhandledrejection', (reject: PromiseRejectionEvent) => {
-        const stack = (reject && reject.reason && reject.reason.stack ? reject.reason.stack : reject.type);
-        reportError('unhandledrejection', stack);
-    });
-};
-
-// Listen for preferences from the extension
-window.addEventListener('message', (e) => {
-    if (e.data.substr(0, 12) === 'preferences:') {
-        (devToolsFrame.contentWindow as any).InspectorFrontendHost.fireGetStateCallback(e.data.substr(12));
-    } else if (e.data.substr(0, 7) === 'setUrl:') {
-        (devToolsFrame.contentWindow as any).ResourceLoaderOverride.resolveUrlRequest(e.data.substr(7));
-    }
-});

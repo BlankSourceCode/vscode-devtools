@@ -143,10 +143,10 @@ export function forceForwardSlashes(aUrl: string): string {
         .replace(/\\/g, '/');
 }
 
-export function getUrlFromConfig(folder: vscode.WorkspaceFolder, config: vscode.DebugConfiguration): string {
+export function getUrlFromConfig(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration): string {
     let outUrlString = '';
 
-    if (config.file) {
+    if (config.file && folder) {
         outUrlString = config.file;
         outUrlString = outUrlString.replace('${workspaceFolder}', folder.uri.path);
         outUrlString = pathToFileURL(outUrlString);

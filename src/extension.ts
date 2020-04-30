@@ -291,6 +291,8 @@ class DevToolsPanel {
             return this._setDevtoolsState(message.substr(9));
         } else if (message.substr(0, 7) === 'getUrl:') {
             return this._getDevtoolsUrl(message.substr(7));
+        } else if (message.substr(0, 7) === 'copyText:') {
+            return this._copyText(message.substr(9));
         }
 
         if (!this._socket) {
@@ -392,6 +394,12 @@ class DevToolsPanel {
         }
 
         this._panel.webview.postMessage(`setUrl:${JSON.stringify({ id: request.id, content })}`);
+    }
+
+    private async _copyText(message: string) {
+        // Parse the request from the message and store it
+        const request = JSON.parse(message) as { text: string };
+        vscode.env.clipboard.writeText(request.text);
     }
 
     private _update() {

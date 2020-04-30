@@ -28,7 +28,7 @@
     "remote"
   ],
   "engines": {
-    "vscode": "^1.25.0"
+    "vscode": "^1.34.0"
   },
   "categories": [
     "Other"
@@ -140,6 +140,7 @@
     "@types/node": "13.5.0",
     "@types/shelljs": "0.8.6",
     "@types/ws": "7.2.0",
+    "@types/vscode": "1.34.0",
     "@types/applicationinsights": "0.20.0",
     "chrome-devtools-frontend": "1.0.602557",
     "fs-extra": "8.1.0",
@@ -149,7 +150,7 @@
     "tslint": "6.0.0",
     "typescript": "3.7.5",
     "vsce": "1.71.0",
-    "vscode": "1.1.36",
+    "vscode": "1.1.37",
     "webpack": "4.41.5",
     "webpack-cli": "3.3.10"
   }

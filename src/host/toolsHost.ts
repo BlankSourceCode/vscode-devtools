@@ -31,6 +31,10 @@ export class ToolsHost {
         window.parent.postMessage(`telemetry:${JSON.stringify(telemetry)}`, '*');
     }
 
+    public copyText(text: string) {
+        window.parent.postMessage(`copyText:${JSON.stringify({ text })}`, '*');
+    }
+
     public fireGetStateCallback(state: string) {
         const prefs = JSON.parse(state);
         if (this._getStateCallback) {

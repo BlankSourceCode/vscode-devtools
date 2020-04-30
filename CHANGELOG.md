@@ -1,3 +1,6 @@
+## 0.0.7
+* Fixed copying text from the devtools - [#23](https://github.com/BlankSourceCode/vscode-devtools/issues/23)
+
 ## 0.0.6
 * Fixed issue with the DevTools showing blank in latest versions of VS Code. - [#18](https://github.com/BlankSourceCode/vscode-devtools/issues/18)
 

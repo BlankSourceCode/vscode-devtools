@@ -2,6 +2,8 @@
 
 A VSCode extension to host the chrome devtools inside of a webview.
 
+**If you are looking for a more streamlined and officially supported devtools extension, you should try [VS Code - Elements for Microsoft Edge (Chromium)](https://github.com/microsoft/vscode-edge-devtools)**
+
 <p align="center">
     <a href="https://marketplace.visualstudio.com/items?itemName=codemooseus.vscode-devtools-for-chrome">
         <img src="https://vsmarketplacebadge.apphb.com/version/codemooseus.vscode-devtools-for-chrome.svg" alt="Marketplace badge">

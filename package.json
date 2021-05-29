@@ -133,7 +133,7 @@
   },
   "dependencies": {
     "applicationinsights": "1.6.0",
-    "ws": "7.2.1"
+    "ws": "7.4.6"
   },
   "devDependencies": {
     "@types/fs-extra": "8.0.1",

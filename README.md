@@ -1,8 +1,22 @@
+# THIS PROJECT IS NO LONGER UNDER ACTIVE DEVELOPMENT
+
+This was a project that I took on in my spare time to show the potential of having the DevTool embedded directly in VS Code. Unfortunately I no longer have the time to keep this up to date with all the new changes in Chrome, so I am archiving the project and will be removing it from the VS Code marketplace.
+
+However, I think the experiment was a success, and it worked so well in fact, that there is now an officially supported version from Microsoft for the Edge DevTools, which you should check out at the following links:
+
+[Microsoft Edge Developer Tools for Visual Studio Code](https://github.com/microsoft/vscode-edge-devtools)
+
+[Microsoft Edge Developer Tools integration in VS Code](https://docs.microsoft.com/en-us/microsoft-edge/visual-studio-code/microsoft-edge-devtools-extension#browser-debugging-with-microsoft-edge-devtools-integration-in-visual-studio-code)
+
+You can install the Edge version from the [VS Code marketplace](https://marketplace.visualstudio.com/items?itemName=ms-edgedevtools.vscode-edge-devtools)
+
+Thanks to everyone that installed/used/filed issues for this project, and I hope it was useful while it lasted.
+
 # VSCode DevTools for Chrome
 
 A VSCode extension to host the chrome devtools inside of a webview.
 
-**If you are looking for a more streamlined and officially supported devtools extension, you should try [VS Code - Elements for Microsoft Edge (Chromium)](https://github.com/microsoft/vscode-edge-devtools)**
+
 
 <p align="center">
     <a href="https://marketplace.visualstudio.com/items?itemName=codemooseus.vscode-devtools-for-chrome">
